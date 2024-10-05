@@ -1,12 +1,14 @@
 from neo4j import GraphDatabase
 import random
+from heapq import heappush, heappop
+from relationship_scoring import jaccard_similarity, cosine_similarity
+from functools import lru_cache 
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-from app.personality_embedding import generate_ocean_vector
-from relationship_scoring import jaccard_similarity, cosine_similarity
-from functools import lru_cache 
-import numpy as np
+from personality_embedding import pre_processor
+from API.generate_embeds import get_embeds 
+from answers import openness_answers, conscientiousness_answers, extraversion_answers, agreeableness_answers, neuroticism_answers, people_names, random_ages, interests_combinations, p1, p1_5, p2
 
 def init_driver():
     uri = "neo4j+s://0c5fc78c.databases.neo4j.io"  
@@ -186,6 +188,8 @@ def get_person_embeds(person_id):
         
         record = result.single()
 
+        print(record)
+
         if record:
             return {
                 "vectorEmbeds": record["embed"]
@@ -234,8 +238,91 @@ def generate_relationship_score(person_id1, person_id2):
     # Computing similarity in tags
     tags_similarity = jaccard_similarity(p1_tags, p2_tags)
 
-    get_age = get_person_information["age"]
+    # Fetch ages
+    age_p1 = get_person_information(person_id1)["age"]
+    age_p2 = get_person_information(person_id2)["age"]
 
-    final_score = (0.5 * personality_similarity) + (0.4 * tags_similarity) + (0.1 * get_age)
+    # Calculate age difference
+    age_difference = abs(age_p1 - age_p2)
+
+    # Normalize age similarity
+    # Define a maximum acceptable age difference for full score
+    max_age_difference = 20  # You can adjust this based on your requirements
+    if age_difference <= max_age_difference:
+        age_similarity = 1 - (age_difference / max_age_difference)  # Score ranges from 0 to 1
+    else:
+        age_similarity = 0  # If the difference is greater than max, score is 0
+
+    # Combine scores with appropriate weights
+    final_score = (0.5 * personality_similarity) + (0.4 * tags_similarity) + (0.1 * age_similarity)
 
     return final_score
+
+def find_potential_friends(person_id):
+    p_embeds = get_person_embeds(person_id)["vectorEmbeds"]
+    query = """
+    WITH $p_embeds AS query_vector
+    MATCH (p:Person)
+    WITH p, query_vector, p.vectorEmbed AS person_vector
+    WITH p, query_vector, 
+        REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_vector)-1) | sum + query_vector[i] * person_vector[i]) AS dotProduct,
+        REDUCE(sum = 0.0, i IN RANGE(0, SIZE(person_vector)-1) | sum + person_vector[i]^2) AS personMagSquared,
+        REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_vector)-1) | sum + query_vector[i]^2) AS queryMagSquared
+    WITH p, dotProduct, SQRT(personMagSquared) AS personMagnitude, SQRT(queryMagSquared) AS queryMagnitude
+    WITH p, dotProduct / (personMagnitude * queryMagnitude) AS similarity
+    RETURN p.fullName as p_name, similarity, id(p) as pid, p.tags as tags
+    ORDER BY similarity DESC;
+    """
+
+    parameters = {
+        "p_embeds": p_embeds
+    }
+
+    driver = init_driver()
+
+    with driver.session() as session:
+        result = session.run(query, parameters)
+        
+        # Initialize a list to collect potential friends
+        potential_friends = []
+
+        for record in result:
+            potential_friends.append({
+                "name": record["p_name"],
+                "similarity": record["similarity"],
+                "pid": record["pid"],
+                "tags": record["tags"]
+            })
+
+        return potential_friends if potential_friends else None
+
+
+
+for i in range(20):
+    name = people_names[i]
+    text = pre_processor(openness_answers[i], 
+                        conscientiousness_answers[i], 
+                        extraversion_answers[i], 
+                        agreeableness_answers[i], 
+                        neuroticism_answers[i])
+    
+    embeds = get_embeds(text)
+    age = random_ages[i]
+    tags = interests_combinations[i]
+    
+    create_user(name=name, embeds=embeds, tags=tags, age=age)
+
+# print(find_potential_friends(14))
+
+
+
+def rank_friends(person_id):
+    potential_friends = find_potential_friends(person_id)
+    person1_tags = get_person_tags(person_id)
+    heapq = {}
+
+    for person in potential_friends:
+        score = 0.6 * person["similarity"] + 0.4 * (jaccard_similarity(person1_tags, person["tags"]))
+        heappush(heapq, (-score, person["pid"]))
+
+    return [heappop(heapq) for _ in range(5)]   
