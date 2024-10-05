@@ -1,12 +1,17 @@
 from neo4j import GraphDatabase
 import random
-from app.relationship_scoring import generate_relationship_score
-from cache import LruCache
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+from app.personality_embedding import generate_ocean_vector
+from relationship_scoring import jaccard_similarity, cosine_similarity
+from functools import lru_cache 
+import numpy as np
 
 def init_driver():
-    uri = "neo4j+s://f9abbebf.databases.neo4j.io"  
+    uri = "neo4j+s://0c5fc78c.databases.neo4j.io"  
     username = "neo4j"         
-    password = "sF2U5HO-3zyrCrwRRYKkTu9G-TTHZlh4kRL5_HFbRqQ"  
+    password = "SHurLgy9giavsWJRSvzrWrYUEdzjvaQmZAw40pg-I0M"  
     return GraphDatabase.driver(uri, auth=(username, password))
 
 
@@ -41,12 +46,13 @@ def generate_alias():
     return alias
 
 
-def create_user(name, embeds, tags):
+def create_user(name, embeds, tags, age):
     alias = generate_alias()
     query = """
     CREATE (p:Person {
         fullName: $name,
         tags: $tags,
+        age: $age,
         vectorEmbed: $embeds,
         alias: $alias,
         disconnects: []
@@ -58,7 +64,8 @@ def create_user(name, embeds, tags):
         "name": name,
         "alias": alias,
         "embeds": embeds,
-        "tags": tags
+        "tags": tags,
+        "age": age
     }
 
     driver = init_driver()
@@ -67,7 +74,8 @@ def create_user(name, embeds, tags):
 
 def modify_disconnects(person_id, new_disconnects):
     query = """
-    MATCH (p:Person {id: $person_id})
+    MATCH (p:Person)
+    WHERE id(p) = $person_id
     SET p.disconnects = $new_disconnects
     """
     
@@ -83,7 +91,8 @@ def modify_disconnects(person_id, new_disconnects):
 def create_relationship(person_id1, person_id2):
     conf_score = generate_relationship_score(person_id1, person_id2)
     query = """
-    MATCH (p1:Person {id: $person_id1 }), (p2:Person {id: $person_id2})
+    MATCH (p1:Person), (p2:Person)
+    WHERE id(p1) = $person_id1 AND id(p2) = $person_id2
     CREATE (p1)-[r:CONNECTED_TO {
     confidence_score: $conf_score,
     relationship_start_time: datetime(),
@@ -103,11 +112,12 @@ def create_relationship(person_id1, person_id2):
 
 # Get methods  
   
-@LruCache(maxsize=2, timeout=1)
+@lru_cache(maxsize=2)
 def get_person_information(person_id):
     query = """
-    MATCH (p:Person {id: $person_id})
-    RETURN p.fullName as Fname, id(p) as id, p.alias as alias;
+    MATCH (p:Person)
+    WHERE id(p) = $person_id
+    RETURN p.fullName as Fname, id(p) as id, p.alias as alias, p.age as age;
     """
     
     parameters = {
@@ -125,15 +135,17 @@ def get_person_information(person_id):
             return {
                 "fullName": record["Fname"],
                 "id" : record["id"],
-                "alias": record["alias"]
+                "alias": record["alias"],
+                "age": record["age"]
             }
         else:
             return None  
 
-@LruCache(maxsize=2, timeout=1)
+@lru_cache(maxsize=2)
 def get_person_disconnects(person_id):
     query = """
-    MATCH (p:Person {id: $person_id})
+    MATCH (p:Person)
+    WHERE id(p) = $person_id
     RETURN p.disconnects as disconnects;
     """
     
@@ -155,10 +167,11 @@ def get_person_disconnects(person_id):
         else:
             return None  
 
-@LruCache(maxSize=2, timeout=1)
+@lru_cache(maxsize=2)
 def get_person_embeds(person_id):
     query = """
-    MATCH (p:Person {id: $person_id})
+    MATCH (p:Person)
+    WHERE id(p) = $person_id
     RETURN p.vectorEmbed as embed;
     """
     
@@ -180,10 +193,11 @@ def get_person_embeds(person_id):
         else:
             return None  
         
-@LruCache(maxSize=2, timeout=1)
+@lru_cache(maxsize=2)
 def get_person_tags(person_id):
     query = """
-    MATCH (p:Person {id: $person_id})
+    MATCH (p:Person)
+    WHERE id(p) = $person_id
     RETURN p.tags as tags;
     """
     
@@ -204,3 +218,24 @@ def get_person_tags(person_id):
             }
         else:
             return None 
+        
+
+# Lord forgive me
+def generate_relationship_score(person_id1, person_id2):
+    personality_p1 = get_person_embeds(person_id1)["vectorEmbeds"]
+    personality_p2 = get_person_embeds(person_id2)["vectorEmbeds"]
+
+    # Computing similarity in personality
+    personality_similarity = cosine_similarity(personality_p1, personality_p2)
+
+    p1_tags = get_person_tags(person_id1)
+    p2_tags = get_person_tags(person_id2)
+
+    # Computing similarity in tags
+    tags_similarity = jaccard_similarity(p1_tags, p2_tags)
+
+    get_age = get_person_information["age"]
+
+    final_score = (0.5 * personality_similarity) + (0.4 * tags_similarity) + (0.1 * get_age)
+
+    return final_score
