@@ -1,4 +1,5 @@
 import numpy as np
+from server.app.personality_embedding import generate_ocean_vector
 
 def jaccard_similarity(tags1, tags2):
     # Combine both tag lists to get unique tags
@@ -13,3 +14,7 @@ def jaccard_similarity(tags1, tags2):
     union = np.sum(np.logical_or(binary_tags1, binary_tags2))
     
     return intersection / union if union != 0 else 0
+
+# 0.6x + 0.4y 
+def generate_relationship_score(person1, person2):
+    pass
