@@ -22,13 +22,3 @@ def generate_ocean_vector(text):
     ocean_vector = np.array(probabilities)
     
     return ocean_vector
-
-# Example usage
-user_text = """
-I love going out with friends and meeting new people. Social gatherings are my favorite! I thrive in lively environments and enjoy being the center of attention.
-"""
-ocean_vector = generate_ocean_vector(user_text)
-
-# "Extroversion", "Neuroticism", "Agreeableness", "Conscientiousness", "Openness"
-# Output the personality vector
-print("OCEAN Personality Vector:", ocean_vector)
