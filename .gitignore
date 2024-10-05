@@ -6,6 +6,8 @@ __pycache__/
 # C extensions
 *.so
 
+src/server/tempCodeRunnerFile.python
+
 # Distribution / packaging
 .Python
 build/
