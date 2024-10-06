@@ -1,0 +1,923 @@
+// src/app/page.tsx
+'use client';
+
+import React, { useState, useEffect, forwardRef } from 'react';
+import { useSwipeable } from 'react-swipeable';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Box,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemButton,
+  IconButton,
+  Avatar,
+  TextField,
+  Button,
+  Paper,
+  Divider,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Badge,
+  Tooltip,
+  Modal,
+  Checkbox,
+  ListItemIcon,
+} from '@mui/material';
+import {
+  Chat as ChatIcon,
+  Close as CloseIcon,
+  Send as SendIcon,
+  Report as ReportIcon,
+  Check as CheckIcon,
+  EmojiEmotions as EmojiEmotionsIcon,
+  Event as EventIcon,
+  EmojiEvents as EmojiEventsIcon,
+  Schedule as ScheduleIcon,
+  Brush as BrushIcon,
+  Settings as SettingsIcon,
+  Reply as ReplyIcon,
+  Favorite as FavoriteIcon,
+  ThumbUp as ThumbUpIcon,
+  ThumbDown as ThumbDownIcon,
+} from '@mui/icons-material';
+import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { styled } from '@mui/material/styles';
+import { motion } from 'framer-motion';
+
+// Define the User type
+type User = {
+  id: string;
+  name: string;
+  age: number;
+  photo: string;
+  interests: string[];
+  status: 'online' | 'offline' | 'busy' | 'away';
+  friendshipStartDate?: Date;
+};
+
+const MotionPaper = motion(
+  forwardRef<HTMLDivElement, React.ComponentProps<typeof Paper>>(function MotionPaper(props, ref) {
+    return <Paper {...props} ref={ref} />;
+  })
+);
+
+const MotionUserCard = styled(motion.div)(({ theme }) => ({
+  width: 350,
+  maxWidth: '90%',
+  margin: '20px auto',
+  overflow: 'hidden',
+  position: 'relative',
+  borderRadius: theme.shape.borderRadius,
+  backgroundColor: theme.palette.background.paper,
+  boxShadow: theme.shadows[3],
+}));
+
+const MotionUserPhoto = styled(motion.img)({
+  width: '100%',
+  height: 300,
+  objectFit: 'cover',
+});
+
+
+// Define the Message type
+type Message = {
+  sender: 'me' | 'them';
+  text: string;
+  timestamp: Date;
+  reactions?: { [key: string]: number }; // Emoji reactions
+  repliedTo?: Message;
+};
+
+// Define the Task type
+type Task = {
+  id: string;
+  text: string;
+  completed: boolean;
+  deadline?: Date;
+  assignedTo: string[]; // User IDs
+};
+
+// Custom themes
+const themes = {
+  default: createTheme({
+    palette: {
+      primary: {
+        main: '#673ab7', // Purple
+      },
+      secondary: {
+        main: '#ff9800', // Orange
+      },
+    },
+    typography: {
+      fontFamily: 'Roboto, sans-serif',
+    },
+  }),
+  dark: createTheme({
+    palette: {
+      mode: 'dark',
+      primary: {
+        main: '#90caf9', // Light Blue
+      },
+      secondary: {
+        main: '#f48fb1', // Pink
+      },
+    },
+    typography: {
+      fontFamily: 'Roboto, sans-serif',
+    },
+  }),
+  vibrant: createTheme({
+    palette: {
+      primary: {
+        main: '#e91e63', // Pink
+      },
+      secondary: {
+        main: '#00bcd4', // Cyan
+      },
+    },
+    typography: {
+      fontFamily: 'Roboto, sans-serif',
+    },
+  }),
+};
+
+// Styled Components
+const AppContainer = styled('div')({
+  display: 'flex',
+  height: '100vh',
+});
+
+const Sidebar = styled('div')(({ theme }) => ({
+  width: '25%',
+  backgroundColor: theme.palette.background.paper,
+  overflowY: 'auto',
+  borderRight: `1px solid ${theme.palette.divider}`,
+}));
+
+const MainContent = styled('div')({
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+});
+
+const MatchesList = styled(List)({
+  padding: 0,
+});
+
+const FriendsList = styled(List)({
+  padding: 0,
+});
+
+const UserCard = styled(Paper)(({ theme }) => ({
+  width: 350,
+  maxWidth: '90%',
+  margin: '20px auto',
+  overflow: 'hidden',
+  position: 'relative',
+  borderRadius: theme.shape.borderRadius,
+}));
+
+const UserPhoto = styled(motion.img)({
+  width: '100%',
+  height: 300,
+  objectFit: 'cover',
+});
+
+const UserInfo = styled('div')({
+  padding: '16px',
+});
+
+const SwipeButtons = styled('div')({
+  display: 'flex',
+  justifyContent: 'space-around',
+  marginTop: 20,
+});
+
+const ChatContainer = styled('div')<{ backgroundImage: string }>(({ backgroundImage }) => ({
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  backgroundImage: `url(${backgroundImage})`,
+  backgroundSize: 'cover',
+}));
+
+const MessagesContainer = styled('div')({
+  flex: 1,
+  overflowY: 'auto',
+  padding: '10px',
+});
+
+const MessageBubble = styled(Paper)<{ isUser: boolean }>(({ isUser, theme }) => ({
+  maxWidth: '70%',
+  marginBottom: '10px',
+  alignSelf: isUser ? 'flex-end' : 'flex-start',
+  backgroundColor: isUser ? theme.palette.primary.main : theme.palette.background.paper,
+  color: isUser ? '#fff' : '#000',
+  padding: '10px',
+  borderRadius: '10px',
+  position: 'relative',
+}));
+
+const InputContainer = styled('div')({
+  display: 'flex',
+  padding: '10px',
+});
+
+const StickyHeader = styled(Toolbar)({
+  position: 'sticky',
+  top: 0,
+  zIndex: 1,
+  backgroundColor: 'inherit',
+});
+
+const HealthDashboard = styled('div')({
+  padding: '20px',
+});
+
+const ReactionIcon = styled(IconButton)({
+  padding: '5px',
+});
+
+const StatusIndicator = styled('span')<{ status: string }>(({ status }) => ({
+  display: 'inline-block',
+  width: '10px',
+  height: '10px',
+  borderRadius: '50%',
+  backgroundColor:
+    status === 'online'
+      ? 'green'
+      : status === 'offline'
+      ? 'gray'
+      : status === 'busy'
+      ? 'red'
+      : 'yellow',
+  marginRight: '5px',
+}));
+
+const TaskList = styled(List)({
+  width: '100%',
+});
+
+const SettingsModal = styled(Modal)({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+});
+
+// Main Component
+const IndexPage = () => {
+  // Define ThemeName as a union type with possible values
+type ThemeName = 'default' | 'dark' | 'vibrant';
+
+// Initialize state with type ThemeName
+const [themeName, setThemeName] = useState<ThemeName>('default');
+
+// This ensures that themeName is only one of 'default', 'dark', or 'vibrant'
+const theme = themes[themeName];
+
+  const [users, setUsers] = useState<User[]>([
+    {
+      id: '1',
+      name: 'Alice',
+      age: 25,
+      photo: '/images/MAZ08545.JPG',
+      interests: ['Music', 'Travel', 'Reading'],
+      status: 'online',
+    },
+    {
+      id: '2',
+      name: 'Bob',
+      age: 28,
+      photo: '/images/MAZ08161.JPG',
+      interests: ['Sports', 'Movies', 'Cooking'],
+      status: 'offline',
+    },
+  ]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [matches, setMatches] = useState<User[]>([]);
+  const [friends, setFriends] = useState<User[]>([]);
+  const [selectedChatUser, setSelectedChatUser] = useState<User | null>(null);
+  const [messages, setMessages] = useState<{ [key: string]: Message[] }>({});
+  const [inputText, setInputText] = useState('');
+  const [timers, setTimers] = useState<{ [key: string]: number }>({});
+  const [intervals, setIntervals] = useState<{ [key: string]: NodeJS.Timeout }>({});
+  const [lastInteraction, setLastInteraction] = useState<{ [key: string]: Date }>({});
+  const [milestones, setMilestones] = useState<{ [key: string]: string[] }>({});
+  const [tasks, setTasks] = useState<{ [key: string]: Task[] }>({});
+  const [events, setEvents] = useState<{ [key: string]: any[] }>({});
+  const [chatBackgrounds, setChatBackgrounds] = useState<{ [key: string]: string }>({});
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const handleSwipe = (direction: string) => {
+    if (direction === 'Right') {
+      const matchedUser = users[currentIndex];
+      matchedUser.friendshipStartDate = new Date();
+      setMatches((prevMatches) => [...prevMatches, matchedUser]);
+
+      setTimers((prevTimers) => ({ ...prevTimers, [matchedUser.id]: 86400 }));
+
+      const interval = setInterval(() => {
+        setTimers((prevTimers) => {
+          const newTime = prevTimers[matchedUser.id] - 1;
+          if (newTime <= 0) {
+            setMatches((prevMatches) => prevMatches.filter((user) => user.id !== matchedUser.id));
+            clearInterval(interval);
+            delete prevTimers[matchedUser.id];
+            return { ...prevTimers };
+          }
+          return { ...prevTimers, [matchedUser.id]: newTime };
+        });
+      }, 1000);
+
+      setIntervals((prevIntervals) => ({ ...prevIntervals, [matchedUser.id]: interval }));
+
+      setCurrentIndex((prevIndex) => prevIndex + 1);
+    } else if (direction === 'Left') {
+      setCurrentIndex((prevIndex) => prevIndex + 1);
+    }
+  };
+
+  const handlers = useSwipeable({
+    onSwipedLeft: () => handleSwipe('Left'),
+    onSwipedRight: () => handleSwipe('Right'),
+    preventScrollOnSwipe: true,
+    trackMouse: true,
+  });
+
+  const selectChatUser = (user: User) => {
+    setSelectedChatUser(user);
+  };
+
+  const handleDecision = (accepted: boolean, userId: string) => {
+    if (accepted) {
+      const user = matches.find((u) => u.id === userId);
+      if (user) {
+        user.friendshipStartDate = new Date();
+        setFriends((prevFriends) => [...prevFriends, user]);
+        setMatches((prevMatches) => prevMatches.filter((u) => u.id !== userId));
+
+        clearInterval(intervals[userId]);
+        setTimers((prevTimers) => {
+          delete prevTimers[userId];
+          return { ...prevTimers };
+        });
+        setIntervals((prevIntervals) => {
+          delete prevIntervals[userId];
+          return { ...prevIntervals };
+        });
+      }
+    } else {
+      setMatches((prevMatches) => prevMatches.filter((u) => u.id !== userId));
+      setFriends((prevFriends) => prevFriends.filter((u) => u.id !== userId));
+
+      clearInterval(intervals[userId]);
+      setTimers((prevTimers) => {
+        delete prevTimers[userId];
+        return { ...prevTimers };
+      });
+      setIntervals((prevIntervals) => {
+        delete prevIntervals[userId];
+        return { ...prevIntervals };
+      });
+    }
+    setSelectedChatUser(null);
+  };
+
+  const formatTime = (seconds: number) => {
+    const hrs = String(Math.floor(seconds / 3600)).padStart(2, '0');
+    const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+    const secs = String(seconds % 60).padStart(2, '0');
+    return `${hrs}:${mins}:${secs}`;
+  };
+
+  const handleSendMessage = () => {
+    if (!selectedChatUser || inputText.trim() === '') return;
+
+    const userId = selectedChatUser.id;
+
+    const newMessage: Message = {
+      sender: 'me',
+      text: inputText,
+      timestamp: new Date(),
+    };
+
+    setMessages((prevMessages) => {
+      const userMessages = prevMessages[userId] || [];
+      return {
+        ...prevMessages,
+        [userId]: [...userMessages, newMessage],
+      };
+    });
+    setInputText('');
+
+    setLastInteraction((prev) => ({ ...prev, [userId]: new Date() }));
+
+    setTimeout(() => {
+      const replyMessage: Message = {
+        sender: 'them',
+        text: `Echo: ${inputText}`,
+        timestamp: new Date(),
+      };
+      setMessages((prevMessages) => {
+        const userMessages = prevMessages[userId] || [];
+        return {
+          ...prevMessages,
+          [userId]: [...userMessages, replyMessage],
+        };
+      });
+      setLastInteraction((prev) => ({ ...prev, [userId]: new Date() }));
+    }, 1000);
+
+    // Check for milestones
+    const messageCount = (messages[userId]?.length || 0) + 1;
+    const userMilestones = milestones[userId] || [];
+    if (messageCount === 100 && !userMilestones.includes('100_messages')) {
+      setMilestones((prev) => ({
+        ...prev,
+        [userId]: [...(prev[userId] || []), '100_messages'],
+      }));
+    }
+  };
+
+  const handleReaction = (userId: string, messageIndex: number, reaction: string) => {
+    setMessages((prevMessages) => {
+      const userMessages = [...(prevMessages[userId] || [])];
+      const message = { ...userMessages[messageIndex] };
+      message.reactions = {
+        ...message.reactions,
+        [reaction]: (message.reactions?.[reaction] || 0) + 1,
+      };
+      userMessages[messageIndex] = message;
+      return {
+        ...prevMessages,
+        [userId]: userMessages,
+      };
+    });
+  };
+
+  const handleSwipeToReply = (message: Message) => {
+    setInputText(`@${message.sender}: `);
+  };
+
+  const getFriendshipDuration = (user: User) => {
+    if (!user.friendshipStartDate) return '';
+    const diff = new Date().getTime() - user.friendshipStartDate.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    return `${days} day(s) of friendship`;
+  };
+
+  const handleTaskInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTask(e.currentTarget.value);
+      e.currentTarget.value = ''; // Clear the input after adding the task
+    }
+  };
+
+  const handleAddTask = (text: string) => {
+    if (!selectedChatUser) return;
+    const userId = selectedChatUser.id;
+    const newTask: Task = {
+      id: `${Date.now()}`,
+      text,
+      completed: false,
+      assignedTo: [userId],
+    };
+    setTasks((prevTasks) => ({
+      ...prevTasks,
+      [userId]: [...(prevTasks[userId] || []), newTask],
+    }));
+  };
+
+  const toggleTaskCompletion = (userId: string, taskId: string) => {
+    setTasks((prevTasks) => {
+      const userTasks = [...(prevTasks[userId] || [])];
+      const taskIndex = userTasks.findIndex((t) => t.id === taskId);
+      if (taskIndex > -1) {
+        userTasks[taskIndex].completed = !userTasks[taskIndex].completed;
+      }
+      return {
+        ...prevTasks,
+        [userId]: userTasks,
+      };
+    });
+  };
+
+  const handleCreateEvent = (event: any) => {
+    if (!selectedChatUser) return;
+    const userId = selectedChatUser.id;
+    setEvents((prevEvents) => ({
+      ...prevEvents,
+      [userId]: [...(prevEvents[userId] || []), event],
+    }));
+  };
+
+  const handleOpenSettings = () => {
+    setSettingsOpen(true);
+  };
+
+  const handleCloseSettings = () => {
+    setSettingsOpen(false);
+  };
+
+  const handleThemeChange = (event: any) => {
+    setThemeName(event.target.value);
+  };
+
+  const handleBackgroundChange = (background: string) => {
+    if (!selectedChatUser) return;
+    setChatBackgrounds((prev) => ({
+      ...prev,
+      [selectedChatUser.id]: background,
+    }));
+  };
+
+  useEffect(() => {
+    // Check for friendship milestones
+    friends.forEach((user) => {
+      if (!user.friendshipStartDate) return;
+      const diff = new Date().getTime() - user.friendshipStartDate.getTime();
+      const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30));
+      const userMilestones = milestones[user.id] || [];
+      if (months >= 1 && !userMilestones.includes('1_month')) {
+        setMilestones((prev) => ({
+          ...prev,
+          [user.id]: [...(prev[user.id] || []), '1_month'],
+        }));
+      }
+    });
+  }, [friends, milestones]);
+
+  return (
+    <ThemeProvider theme={themes[themeName]}>
+      <CssBaseline />
+      <AppBar position="static" color="primary">
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Typography variant="h6" fontWeight="bold">
+            Hi-Five
+          </Typography>
+          <IconButton color="inherit" onClick={handleOpenSettings}>
+            <SettingsIcon />
+          </IconButton>
+        </Toolbar>
+      </AppBar>
+      <AppContainer>
+        {/* Matches Sidebar */}
+        <Sidebar>
+          <Typography variant="h6" align="center" sx={{ padding: '10px' }}>
+            Matches
+          </Typography>
+          <Divider />
+          <MatchesList>
+            {matches.map((user) => (
+              <ListItem key={user.id} disablePadding>
+                <ListItemButton onClick={() => selectChatUser(user)}>
+                  <Badge
+                    variant="dot"
+                    color="success"
+                    invisible={user.status !== 'online'}
+                    overlap="circular"
+                    anchorOrigin={{
+                      vertical: 'bottom',
+                      horizontal: 'right',
+                    }}
+                  >
+                    <Avatar src={user.photo} sx={{ marginRight: '10px' }} />
+                  </Badge>
+                  <ListItemText
+                    primary={
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <StatusIndicator status={user.status} />
+                        {user.name}
+                      </div>
+                    }
+                    secondary={`Time Left: ${formatTime(timers[user.id])}`}
+                  />
+                  <IconButton onClick={() => handleDecision(false, user.id)}>
+                    <CloseIcon />
+                  </IconButton>
+                  <IconButton onClick={() => handleDecision(true, user.id)}>
+                    <CheckIcon />
+                  </IconButton>
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </MatchesList>
+        </Sidebar>
+
+        {/* Main Content */}
+        <MainContent>
+          {selectedChatUser ? (
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <StickyHeader>
+                <IconButton edge="start" color="inherit" onClick={() => setSelectedChatUser(null)}>
+                  <CloseIcon />
+                </IconButton>
+                <Typography variant="h6">{selectedChatUser.name}</Typography>
+                <IconButton color="secondary" sx={{ marginLeft: 'auto' }}>
+                  <ReportIcon />
+                </IconButton>
+              </StickyHeader>
+              {matches.find((u) => u.id === selectedChatUser.id) && (
+                <Typography variant="body2" align="center" color="textSecondary">
+                  Time Left: {formatTime(timers[selectedChatUser.id])}
+                </Typography>
+              )}
+              {friends.find((u) => u.id === selectedChatUser.id) && (
+                <Typography variant="body2" align="center" color="textSecondary">
+                  {getFriendshipDuration(selectedChatUser)}
+                </Typography>
+              )}
+              <ChatContainer backgroundImage={chatBackgrounds[selectedChatUser.id] || ''}>
+                <MessagesContainer>
+                  {(messages[selectedChatUser.id] || []).map((message, index) => (
+                    <MotionPaper
+                      key={index}
+                      elevation={3}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileHover={{ scale: 1.02 }}
+                      sx={{
+                        maxWidth: '70%',
+                        marginBottom: '10px',
+                        alignSelf: message.sender === 'me' ? 'flex-end' : 'flex-start',
+                        backgroundColor: message.sender === 'me' ? 'primary.main' : 'background.paper',
+                        color: message.sender === 'me' ? '#fff' : '#000',
+                        padding: '10px',
+                        borderRadius: '10px',
+                      }}
+                    >
+                      {message.repliedTo && (
+                        <Paper
+                          sx={{
+                            padding: '5px',
+                            backgroundColor: '#f0f0f0',
+                            marginBottom: '5px',
+                          }}
+                        >
+                          <Typography variant="caption">
+                            {message.repliedTo.sender}: {message.repliedTo.text}
+                          </Typography>
+                        </Paper>
+                      )}
+                      <Typography>{message.text}</Typography>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <ReactionIcon
+                          onClick={() => handleReaction(selectedChatUser.id, index, '👍')}
+                        >
+                          <ThumbUpIcon fontSize="small" />
+                        </ReactionIcon>
+                        <ReactionIcon
+                          onClick={() => handleReaction(selectedChatUser.id, index, '❤️')}
+                        >
+                          <FavoriteIcon fontSize="small" />
+                        </ReactionIcon>
+                        <ReactionIcon
+                          onClick={() => handleReaction(selectedChatUser.id, index, '😂')}
+                        >
+                          <EmojiEmotionsIcon fontSize="small" />
+                        </ReactionIcon>
+                        <IconButton
+                          onClick={() => handleSwipeToReply(message)}
+                          size="small"
+                          sx={{ marginLeft: 'auto' }}
+                        >
+                          <ReplyIcon fontSize="small" />
+                        </IconButton>
+                      </div>
+                      {message.reactions && (
+                        <Typography variant="caption">
+                          {Object.entries(message.reactions).map(
+                            ([emoji, count]) => `${emoji} ${count} `
+                          )}
+                        </Typography>
+                      )}
+                      {message.text}
+                    </MotionPaper>
+                  ))}
+                </MessagesContainer>
+                <InputContainer>
+                  <TextField
+                    variant="outlined"
+                    fullWidth
+                    placeholder="Type your message..."
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                  />
+                  <IconButton color="primary" onClick={handleSendMessage}>
+                    <SendIcon />
+                  </IconButton>
+                </InputContainer>
+              </ChatContainer>
+              {/* Shared To-Do List */}
+              <Box sx={{ padding: '10px' }}>
+                <Typography variant="h6">Shared Tasks</Typography>
+                <TaskList>
+                  {(tasks[selectedChatUser.id] || []).map((task) => (
+                    <ListItem key={task.id} disablePadding>
+                      <ListItemIcon>
+                        <Checkbox
+                          edge="start"
+                          checked={task.completed}
+                          tabIndex={-1}
+                          disableRipple
+                          onChange={() => toggleTaskCompletion(selectedChatUser.id, task.id)}
+                        />
+                      </ListItemIcon>
+                      <ListItemText primary={task.text} />
+                    </ListItem>
+                  ))}
+                </TaskList>
+                <TextField
+  variant="outlined"
+  fullWidth
+  placeholder="Add a new task..."
+  onKeyPress={(e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const inputElement = e.currentTarget as HTMLInputElement; // Cast to HTMLInputElement
+      handleAddTask(inputElement.value);
+      inputElement.value = ''; // Clear the input after adding the task
+    }
+  }}
+/>
+              </Box>
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {users[currentIndex] ? (
+                <div {...handlers}>
+                  <MotionUserCard
+  initial={{ scale: 0.9, opacity: 0 }}
+  animate={{ scale: 1, opacity: 1 }}
+  exit={{ scale: 0.9, opacity: 0 }}
+  whileTap={{ scale: 0.95 }}
+>
+  <MotionUserPhoto
+    src={users[currentIndex].photo}
+    alt={`${users[currentIndex].name}'s photo`}
+    drag="x"
+    dragConstraints={{ left: 0, right: 0 }}
+    onDragEnd={(event, info) => {
+      if (info.offset.x > 100) {
+        handleSwipe('Right');
+      } else if (info.offset.x < -100) {
+        handleSwipe('Left');
+      }
+    }}
+  />
+  <UserInfo>
+    <Typography variant="h6">
+      {users[currentIndex].name}, {users[currentIndex].age}
+    </Typography>
+    <Typography variant="body2" color="textSecondary">
+      Interests: {users[currentIndex].interests.join(', ')}
+    </Typography>
+  </UserInfo>
+</MotionUserCard>
+                  <SwipeButtons>
+                    <IconButton
+                      color="secondary"
+                      onClick={() => handleSwipe('Left')}
+                      size="large"
+                      sx={{ backgroundColor: '#f8bbd0', '&:hover': { backgroundColor: '#f48fb1' } }}
+                    >
+                      <CloseIcon fontSize="large" />
+                    </IconButton>
+                    <IconButton
+                      color="primary"
+                      onClick={() => handleSwipe('Right')}
+                      size="large"
+                      sx={{ backgroundColor: '#c5cae9', '&:hover': { backgroundColor: '#9fa8da' } }}
+                    >
+                      <ChatIcon fontSize="large" />
+                    </IconButton>
+                  </SwipeButtons>
+                </div>
+              ) : (
+                <Typography variant="h6">No more users available.</Typography>
+              )}
+            </Box>
+          )}
+        </MainContent>
+
+        {/* Friends Sidebar */}
+        <Sidebar>
+          <Typography variant="h6" align="center" sx={{ padding: '10px' }}>
+            Friends
+          </Typography>
+          <Divider />
+          <FriendsList>
+            {friends.map((user) => (
+              <ListItem key={user.id} disablePadding>
+                <ListItemButton onClick={() => selectChatUser(user)}>
+                  <Badge
+                    variant="dot"
+                    color="success"
+                    invisible={user.status !== 'online'}
+                    overlap="circular"
+                    anchorOrigin={{
+                      vertical: 'bottom',
+                      horizontal: 'right',
+                    }}
+                  >
+                    <Avatar src={user.photo} sx={{ marginRight: '10px' }} />
+                  </Badge>
+                  <ListItemText
+                    primary={
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <StatusIndicator status={user.status} />
+                        {user.name}
+                        {milestones[user.id]?.includes('1_month') && (
+                          <Tooltip title="1 Month of Friendship">
+                            <EmojiEventsIcon color="primary" sx={{ marginLeft: '5px' }} />
+                          </Tooltip>
+                        )}
+                      </div>
+                    }
+                  />
+                  <IconButton onClick={() => handleDecision(false, user.id)}>
+                    <CloseIcon />
+                  </IconButton>
+                  <IconButton color="secondary">
+                    <ReportIcon />
+                  </IconButton>
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </FriendsList>
+        </Sidebar>
+      </AppContainer>
+
+      {/* Friendship Health Dashboard */}
+      <HealthDashboard>
+        <Typography variant="h6">Friendship Health</Typography>
+        {friends.map((user) => {
+          const lastMsgDate = lastInteraction[user.id];
+          const daysSinceLastMsg = lastMsgDate
+            ? Math.floor((new Date().getTime() - lastMsgDate.getTime()) / (1000 * 60 * 60 * 24))
+            : 'No interactions yet';
+          return (
+            <Typography key={user.id} variant="body1">
+              {user.name}: {typeof daysSinceLastMsg === 'number' ? `${daysSinceLastMsg} day(s) ago` : daysSinceLastMsg}
+            </Typography>
+          );
+        })}
+      </HealthDashboard>
+
+      {/* Settings Modal */}
+      <SettingsModal open={settingsOpen} onClose={handleCloseSettings}>
+        <Paper sx={{ padding: '20px', minWidth: '300px' }}>
+          <Typography variant="h6">Settings</Typography>
+          <FormControl fullWidth sx={{ marginTop: '10px' }}>
+            <InputLabel>Theme</InputLabel>
+            <Select value={themeName} label="Theme" onChange={handleThemeChange}>
+              <MenuItem value="default">Default</MenuItem>
+              <MenuItem value="dark">Dark</MenuItem>
+              <MenuItem value="vibrant">Vibrant</MenuItem>
+            </Select>
+          </FormControl>
+          {selectedChatUser && (
+            <FormControl fullWidth sx={{ marginTop: '10px' }}>
+              <InputLabel>Chat Background</InputLabel>
+              <Select
+                value={chatBackgrounds[selectedChatUser.id] || ''}
+                label="Chat Background"
+                onChange={(e) => handleBackgroundChange(e.target.value)}
+              >
+                <MenuItem value="">Default</MenuItem>
+                <MenuItem value="/images/background1.jpg">Background 1</MenuItem>
+                <MenuItem value="/images/background2.jpg">Background 2</MenuItem>
+                <MenuItem value="/images/background3.jpg">Background 3</MenuItem>
+              </Select>
+            </FormControl>
+          )}
+          <Button onClick={handleCloseSettings} sx={{ marginTop: '10px' }}>
+            Close
+          </Button>
+        </Paper>
+      </SettingsModal>
+    </ThemeProvider>
+  );
+};
+
+export default IndexPage;
