@@ -9,13 +9,21 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@mui/icons-material": "^6.1.2",
+    "@mui/material": "^6.1.2",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.5",
+    "framer-motion": "^11.11.1",
+    "install": "^0.13.0",
     "mongodb": "^6.9.0",
     "mongoose": "^8.7.0",
+    "mui": "^0.0.1",
     "next": "^14.2.14",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "^6.26.2",
     "socket.io": "^4.8.0",
     "socket.io-client": "^4.8.0"
   },

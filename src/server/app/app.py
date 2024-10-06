@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from classes.person import Person
-from neo4j_db.CRUD import create_user, get_person_information, get_persons_friends, get_person_tags, create_friendship_req, delete_existing_relationship, validate_friend_req
+from neo4j_db.CRUD import create_user, get_person_information, get_persons_friends, get_person_tags, create_friendship_req, delete_existing_relationship, validate_friend_req, create_potential_match
 from neo4j_db.answers import people_names, random_ages, interests_combinations, openness_answers, conscientiousness_answers, neuroticism_answers, agreeableness_answers, extraversion_answers
 from API.generate_embeds import get_ocean_embeds, pre_processor
 from neo4j_db.relationship_scoring import find_potential_friends, filter_friends
@@ -34,8 +34,9 @@ def generate_seed_data():
         temp_person.N_embed = embeds[4]
         create_user(temp_person, "test@email.com", "33zx-s3d-dd")
 
-@app.route("/userData/<int:id>", methods=['GET'])
+@app.route("/api/userData/", methods=['GET'])
 def get_user_data(id: int):
+    email = request.args.get('email')
     record = get_person_information(id)
     if record:
         return jsonify(record), 200  
@@ -43,7 +44,7 @@ def get_user_data(id: int):
         return jsonify({"error": "User not found"}), 404  
 
 
-@app.route("/getFriends/<int:id>", methods=['GET'])
+@app.route("/api/getFriends/<int:id>", methods=['GET'])
 def get_users_friends(id: int):
     record = get_persons_friends(id, 1)
 
@@ -52,7 +53,7 @@ def get_users_friends(id: int):
     else:
         return jsonify({"error": "User not found"}), 404
 
-@app.route("/getTempFriends/<int:id>", methods=['GET'])
+@app.route("/api/getTempFriends/<int:id>", methods=['GET'])
 def get_users_potential_friends(id: int):
     record = get_persons_friends(id, 2)
 
@@ -61,7 +62,7 @@ def get_users_potential_friends(id: int):
     else:
         return jsonify({"error": "User not found"}), 404
     
-@app.route("/getPotentialFriends/<int:id>", methods=['GET'])
+@app.route("/api/getPotentialFriends/<int:id>", methods=['GET'])
 def get_potential_new_relationships(id: int):
     ptags = get_person_tags(id)
     pFriends = find_potential_friends(person_id=id)
@@ -73,7 +74,7 @@ def get_potential_new_relationships(id: int):
     else:
         return jsonify({"error": "User not found"}), 404
     
-@app.route("/postCreateUser", methods=['POST'])
+@app.route("/api/postCreateUser", methods=['POST'])
 def post_user_creation(response):
     try:
         # Extract the JSON package sent by the client
@@ -108,15 +109,22 @@ def post_user_creation(response):
         # Handle any potential errors
         return jsonify({"error": str(e)}), 500
 
-@app.route("/sendFriendReq/<int:id1>/<int:id2>", methods=['POST'])
+@app.route("0.0.0.0:3000/api/sendFriendReq/<int:id1>/<int:id2>", methods=['POST'])
 def sendFriendReq(id1, id2):
     create_friendship_req(p1_id=id1, p2_id=id2)
     return jsonify({"message": "Friend request sent"}), 200
 
-@app.route("/validateFriendReq/<int:id1>/<int:id2>", methods=['POST'])
+@app.route("0.0.0.0:3000/api/validateFriendReq/<int:id1>/<int:id2>", methods=['POST'])
 def validateFriendReq(id1, id2):
     result = validate_friend_req(id1, id2)
     return jsonify({"message": result}), 200
+
+@app.route("0.0.0.0:3000/api/swipeRight/<int:id1/<int:id2>", methods=['POST'])
+def swipeRight(id1, id2):
+    create_potential_match(id1, id2)
+    return jsonify({"message": "Swiped Right!"}), 200
+
+
 
 
 if __name__ == '__main__':

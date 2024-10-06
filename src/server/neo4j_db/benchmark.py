@@ -84,6 +84,7 @@ def get_embeds_fine(OCEAN_string):
     # Make the POST request to the Ollama API
     response = requests.get(EMBED_URL, json=payload)
 
+    print(response.json())
     # Parse the response
     data = response.json()["encoded"]
     return data
@@ -129,14 +130,23 @@ skibidi3 = [
     "I get stressed easily and find it hard to relax."
 ]
 
+# skibidi4 = [
+#     "I hate exploring. I want to stay at home and avoid talking to people.",
+#     "Planning? bruh, I just go with the flow lol",
+#     "I despise other people, get out of my space.",
+#     "Don't expect any help from me, I'm out here for myself.",
+#     "Don't test my patience, you'll find out quick."
+# ]
 
 sk1 = get_ocean_embeds(skibidi1)
 sk2 = get_ocean_embeds(skibidi2)
 sk3 = get_ocean_embeds(skibidi3)
+# sk4 = get_ocean_embeds(skibidi4)
 
 skhm = []
 skhm2 = []
 skhm3 = []
+skhm4 = []
 
 for i in range(len(sk2)):
     skhm3.append(cosine_similarity(sk1[i], sk2[i]))
@@ -146,6 +156,10 @@ for i in range(len(sk2)):
 
 for i in range(len(sk2)):
     skhm2.append(cosine_similarity(sk1[i], sk3[i]))
+
+# for i in range(len(sk4)):
+#     skhm2.append(cosine_similarity(sk1[i], sk4[i]))
+
 
 print(skhm3)
 print(sum(skhm3)/5)
