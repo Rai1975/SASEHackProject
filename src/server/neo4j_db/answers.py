@@ -302,27 +302,27 @@ string3 = sentences = [
     "I get stressed easily and find it hard to relax."
 ]
 
-str1_embed = get_ocean_embeds(string1)
-str2_embed = get_ocean_embeds(string2)
-str3_embed = get_ocean_embeds(string3)
+# str1_embed = get_ocean_embeds(string1)
+# str2_embed = get_ocean_embeds(string2)
+# str3_embed = get_ocean_embeds(string3)
 
 arr = []
 arr2 = []
 arr3 = []
-for i in range(len(str2_embed)):
-    arr.append(cosine_similarity(str1_embed[i], str2_embed[i]))
+# for i in range(len(str2_embed)):
+#     arr.append(cosine_similarity(str1_embed[i], str2_embed[i]))
 
-for i in range(len(str2_embed)):
-    arr2.append(cosine_similarity(str2_embed[i], str3_embed[i]))
+# for i in range(len(str2_embed)):
+#     arr2.append(cosine_similarity(str2_embed[i], str3_embed[i]))
 
-for i in range(len(str2_embed)):
-    arr3.append(cosine_similarity(str1_embed[i], str3_embed[i]))
+# for i in range(len(str2_embed)):
+#     arr3.append(cosine_similarity(str1_embed[i], str3_embed[i]))
 
-print(arr)
-print(sum(arr)/5)
-print()
-print(arr2)
-print(sum(arr2)/5)
-print()
-print(arr3)
-print(sum(arr3)/5)
+# print(arr)
+# print(sum(arr)/5)
+# print()
+# print(arr2)
+# print(sum(arr2)/5)
+# print()
+# print(arr3)
+# print(sum(arr3)/5)

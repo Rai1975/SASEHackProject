@@ -13,7 +13,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Friends, temp friends, vector search results
-
+#BADDDDDD
 def generate_seed_data():
     for i in range(20):
         temp_person = Person(name=people_names[i], 
@@ -25,7 +25,7 @@ def generate_seed_data():
         temp_person.add_prompt_response(extraversion_answers[i])
         temp_person.add_prompt_response(agreeableness_answers[i])
         temp_person.add_prompt_response(neuroticism_answers[i])
-        text = pre_processor(temp_person.prompt_responses[0], temp_person.prompt_responses[1], temp_person.prompt_responses[2], temp_person.prompt_responses[3], temp_person.prompt_responses[4])
+        text = pre_processor(openness_answers[i], temp_person.prompt_responses[1], temp_person.prompt_responses[2], temp_person.prompt_responses[3], temp_person.prompt_responses[4])
         embeds = get_ocean_embeds(text)
         temp_person.O_embed = embeds[0]
         temp_person.C_embed = embeds[1]
@@ -52,7 +52,7 @@ def get_users_friends(id: int):
     else:
         return jsonify({"error": "User not found"}), 404
 
-@app.route("/getTempFriends/<int:id", methods=['GET'])
+@app.route("/getTempFriends/<int:id>", methods=['GET'])
 def get_users_potential_friends(id: int):
     record = get_persons_friends(id, 2)
 
@@ -108,12 +108,12 @@ def post_user_creation(response):
         # Handle any potential errors
         return jsonify({"error": str(e)}), 500
 
-@app.route("/sendFriendReq/<int:id1>&<int:id2>", methods=['POST'])
+@app.route("/sendFriendReq/<int:id1>/<int:id2>", methods=['POST'])
 def sendFriendReq(id1, id2):
     create_friendship_req(p1_id=id1, p2_id=id2)
     return jsonify({"message": "Friend request sent"}), 200
 
-@app.route("/validateFriendReq/<int:id1>&<int:id2>", methods=['POST'])
+@app.route("/validateFriendReq/<int:id1>/<int:id2>", methods=['POST'])
 def validateFriendReq(id1, id2):
     result = validate_friend_req(id1, id2)
     return jsonify({"message": result}), 200

@@ -276,7 +276,7 @@ def get_person_embeds(person_id):
     query = """
     MATCH (p:Person)
     WHERE id(p) = $person_id
-    RETURN p.vectorEmbed as embed;
+    RETURN p.O_embed AS O_embed, p.C_embed AS C_embed, p.E_embed AS E_embed, p.A_embed AS A_embed, p.N_embed AS N_embed;
     """
     
     parameters = {
@@ -290,14 +290,17 @@ def get_person_embeds(person_id):
         
         record = result.single()
 
-        print(record)
-
         if record:
             return {
-                "vectorEmbeds": record["embed"]
+                "O_embed": record["O_embed"],
+                "C_embed": record["C_embed"],
+                "E_embed": record["E_embed"],
+                "A_embed": record["A_embed"],
+                "N_embed": record["N_embed"]
             }
         else:
-            return None  
+            return None
+
         
 @lru_cache(maxsize=2)
 def get_person_tags(person_id):
@@ -328,14 +331,14 @@ def get_person_tags(person_id):
 @lru_cache(maxsize=2)
 def get_persons_friends(person_id, flag):
     query1 = """
-    MATCH (p1:Person)->[r:CONNECTED_TO]->(p2:Person)
+    MATCH (p1:Person)-[r:CONNECTED_TO]-(p2:Person)
     WHERE id(p1) = $person_id 
     AND r.friendship = true
     RETURN p2.id as id, p2.fullName as name, p2.tags as tags, p2.age as age 
     """ 
 
     query2 = """
-    MATCH (p1:Person)->[r:CONNECTED_TO]->(p2:Person)
+    MATCH (p1:Person)-[r:CONNECTED_TO]-(p2:Person)
     WHERE id(p1) = $person_id 
     AND r.friendship = false
     AND r.relationship_start_time < datetime() - duration({ hours: 48 })

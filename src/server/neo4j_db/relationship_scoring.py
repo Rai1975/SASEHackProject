@@ -1,7 +1,7 @@
 import numpy as np
 from heapq import heappop, heappush
-from graph import init_driver
-from CRUD import get_person_embeds, get_person_tags
+from neo4j_db.graph import init_driver
+from neo4j_db.CRUD import get_person_embeds, get_person_tags
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
@@ -46,29 +46,33 @@ def filter_friends(potential_friends, ptags):
 
     for p in potential_friends:
         try:
-            import numpy as np
-            O = np.array(p.O_embed)
-            C = np.array(p.C_embed)
-            E = np.array(p.E_embed)
-            A = np.array(p.A_embed)
-            N = np.array(p.N_embed)
+            # Access the OCEAN similarity values from the dictionary
+            print(p)
+            O = p["O_similarity"]
+            C = p["C_similarity"]
+            E = p["E_similarity"]
+            A = p["A_similarity"]
+            N = p["N_similarity"]
             
-            # Calculate the average embedding
+            # Calculate the average similarity score
             avg_sim_score_vector = (O + C + E + A + N) / 5
+            print(avg_sim_score_vector)
         except Exception as e:
-            print(f"Error processing embeddings for person ID {p.id}: {e}")
+            print(f"Error processing embeddings for person ID {p['pid']}: {e}")
             continue  
 
-        score = generate_relationship_score(avg_sim_score_vector, person_tags, p.tags)
+        # Generate the relationship score based on vector and tag similarity
+        score = generate_relationship_score(avg_sim_score_vector, person_tags, p['tags'])
 
         # Use negative score to simulate a max-heap since heapq is a min-heap
-        heappush(heap, (-score, (p.id, p.name, p.age, score)))
+        heappush(heap, (-score, (p['pid'], p['name'], p.get('age', 'N/A'), score)))
 
+    # Prepare the list to return top N friends based on the score
     return_list = []
     num_friends_to_return = min(5, len(heap))  # Ensure we don't pop more than available
 
     for _ in range(num_friends_to_return):
-        # heappop returns a tuple: (-score, (id, name, age))
+        # heappop returns a tuple: (-score, (pid, name, age, score))
         _, friend_info = heappop(heap)
         return_list.append(friend_info)
 
@@ -81,23 +85,55 @@ def generate_relationship_score(vector_sim_score, tags1, tags2):
 
 # Finding Potential friends for the user
 def find_potential_friends(person_id):
-    p_embeds = get_person_embeds(person_id)["vectorEmbeds"]
+    person_embeds = get_person_embeds(person_id)
+    
     query = """
-    WITH $p_embeds AS query_vector
+    WITH $p_O_embed AS query_O_vector, 
+         $p_C_embed AS query_C_vector, 
+         $p_E_embed AS query_E_vector, 
+         $p_A_embed AS query_A_vector, 
+         $p_N_embed AS query_N_vector
     MATCH (p:Person)
-    WITH p, query_vector, p.vectorEmbed AS person_vector
-    WITH p, query_vector, 
-        REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_vector)-1) | sum + query_vector[i] * person_vector[i]) AS dotProduct,
-        REDUCE(sum = 0.0, i IN RANGE(0, SIZE(person_vector)-1) | sum + person_vector[i]^2) AS personMagSquared,
-        REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_vector)-1) | sum + query_vector[i]^2) AS queryMagSquared
-    WITH p, dotProduct, SQRT(personMagSquared) AS personMagnitude, SQRT(queryMagSquared) AS queryMagnitude
-    WITH p, dotProduct / (personMagnitude * queryMagnitude) AS similarity
-    RETURN p.fullName as p_name, similarity, id(p) as pid, p.tags as tags
-    ORDER BY similarity DESC;
+    WITH p, query_O_vector, query_C_vector, query_E_vector, query_A_vector, query_N_vector, 
+         p.O_embed AS person_O_vector, 
+         p.C_embed AS person_C_vector, 
+         p.E_embed AS person_E_vector, 
+         p.A_embed AS person_A_vector, 
+         p.N_embed AS person_N_vector
+    WITH p, 
+         REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_O_vector)-1) | sum + query_O_vector[i] * person_O_vector[i]) AS O_dotProduct,
+         REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_C_vector)-1) | sum + query_C_vector[i] * person_C_vector[i]) AS C_dotProduct,
+         REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_E_vector)-1) | sum + query_E_vector[i] * person_E_vector[i]) AS E_dotProduct,
+         REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_A_vector)-1) | sum + query_A_vector[i] * person_A_vector[i]) AS A_dotProduct,
+         REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_N_vector)-1) | sum + query_N_vector[i] * person_N_vector[i]) AS N_dotProduct,
+         SQRT(REDUCE(sum = 0.0, i IN RANGE(0, SIZE(person_O_vector)-1) | sum + person_O_vector[i]^2)) AS O_personMagnitude,
+         SQRT(REDUCE(sum = 0.0, i IN RANGE(0, SIZE(person_C_vector)-1) | sum + person_C_vector[i]^2)) AS C_personMagnitude,
+         SQRT(REDUCE(sum = 0.0, i IN RANGE(0, SIZE(person_E_vector)-1) | sum + person_E_vector[i]^2)) AS E_personMagnitude,
+         SQRT(REDUCE(sum = 0.0, i IN RANGE(0, SIZE(person_A_vector)-1) | sum + person_A_vector[i]^2)) AS A_personMagnitude,
+         SQRT(REDUCE(sum = 0.0, i IN RANGE(0, SIZE(person_N_vector)-1) | sum + person_N_vector[i]^2)) AS N_personMagnitude,
+         SQRT(REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_O_vector)-1) | sum + query_O_vector[i]^2)) AS O_queryMagnitude,
+         SQRT(REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_C_vector)-1) | sum + query_C_vector[i]^2)) AS C_queryMagnitude,
+         SQRT(REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_E_vector)-1) | sum + query_E_vector[i]^2)) AS E_queryMagnitude,
+         SQRT(REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_A_vector)-1) | sum + query_A_vector[i]^2)) AS A_queryMagnitude,
+         SQRT(REDUCE(sum = 0.0, i IN RANGE(0, SIZE(query_N_vector)-1) | sum + query_N_vector[i]^2)) AS N_queryMagnitude
+    WITH p, 
+         O_dotProduct / (O_personMagnitude * O_queryMagnitude) AS O_similarity,
+         C_dotProduct / (C_personMagnitude * C_queryMagnitude) AS C_similarity,
+         E_dotProduct / (E_personMagnitude * E_queryMagnitude) AS E_similarity,
+         A_dotProduct / (A_personMagnitude * A_queryMagnitude) AS A_similarity,
+         N_dotProduct / (N_personMagnitude * N_queryMagnitude) AS N_similarity
+    RETURN p.fullName AS p_name, 
+           O_similarity, C_similarity, E_similarity, A_similarity, N_similarity, 
+           id(p) AS pid, p.tags AS tags, p.age as age
+    ORDER BY (O_similarity + C_similarity + E_similarity + A_similarity + N_similarity) DESC;
     """
 
     parameters = {
-        "p_embeds": p_embeds
+        "p_O_embed": person_embeds["O_embed"],
+        "p_C_embed": person_embeds["C_embed"],
+        "p_E_embed": person_embeds["E_embed"],
+        "p_A_embed": person_embeds["A_embed"],
+        "p_N_embed": person_embeds["N_embed"]
     }
 
     driver = init_driver()
@@ -111,9 +147,14 @@ def find_potential_friends(person_id):
         for record in result:
             potential_friends.append({
                 "name": record["p_name"],
-                "similarity": record["similarity"],
+                "O_similarity": record["O_similarity"],
+                "C_similarity": record["C_similarity"],
+                "E_similarity": record["E_similarity"],
+                "A_similarity": record["A_similarity"],
+                "N_similarity": record["N_similarity"],
                 "pid": record["pid"],
-                "tags": record["tags"]
+                "tags": record["tags"],
+                "age": record["age"]
             })
 
         return potential_friends if potential_friends else None
