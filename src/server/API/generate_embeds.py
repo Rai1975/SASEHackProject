@@ -27,20 +27,31 @@ def cosine_similarity(vector1, vector2):
         return dot_product / (norm1 * norm2)
 
 EMBED_URL = "http://100.123.182.40:8000/v1/embeddings"
-OLLAMA_URL = "http://100.123.182.40:11434/api/generate"
+OLLAMA_URL = "http://100.126.16.100:11434/api/generate"
 
-def get_embeds(string1):
+def pre_process_embeds(ocean_prompt_responses):
+    payload = {
+        "model": "llama-3.2",
+        "input": f"{ocean_prompt_responses}"
+    }
+
+    response = requests.post(OLLAMA_URL, json=payload)
+
+    data = response.json()["data"][0]["embedding"]
+    return data
+
+def get_embeds(string):
     # Payload data
     payload = {
         "model": "BAAI/bge-en-icl",  # specify the model you are using
-        "input": f"{string1}"
+        "input": f"{string}"
     }
     # Make the POST request to the Ollama API
     response = requests.post(EMBED_URL, json=payload)
 
     # Parse the response
-    data1 = response.json()["data"][0]["embedding"]
-    return data1
+    data = response.json()["data"][0]["embedding"]
+    return data
 
 def get_ocean_embeds(Ocean):
     ocean_embeds = []
