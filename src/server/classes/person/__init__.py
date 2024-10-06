@@ -1,5 +1,9 @@
-from typing import List
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+from typing import List, Dict
 import numpy as np
+from API.generate_embeds import get_ocean_embeds
 
 class Person:
     def __init__(
@@ -8,11 +12,12 @@ class Person:
         id: int,
         tags: List[str],
         age: int,
-        O_embed: List[float],
-        C_embed: List[float],
-        E_embed: List[float],
-        A_embed: List[float],
-        N_embed: List[float],
+        prompt_responses: Dict[str, str] = None,
+        O_embed: List[float] = None,
+        C_embed: List[float] = None,
+        E_embed: List[float] = None,
+        A_embed: List[float] = None,
+        N_embed: List[float] = None,
         disconnects: List[int] = None,
         connects: List[int] = None
     ):
@@ -34,6 +39,7 @@ class Person:
         self.id = id
         self.tags = tags
         self.age = age
+        self.prompt_responses = prompt_responses
         self.O_embed = O_embed
         self.C_embed = C_embed
         self.E_embed = E_embed
@@ -58,7 +64,23 @@ class Person:
     def add_connect(self, connect_id):
         self.connects.append(connect_id)
 
+    def add_prompt_response(self, prompt_resonse):
+        self.prompt_responses.append(prompt_resonse)
+
     def __repr__(self):
         return (f"Person(name={self.name}, id={self.id}, age={self.age}, "
                 f"tags={self.tags}, disconnects={self.disconnects})")
+    
+def populate_prompt_responses():
+    pass
+
+def generate_embeds(p1: Person):
+    prompt_list = p1.prompt_responses
+    ocean_embeds = get_ocean_embeds(Ocean=prompt_list)
+
+    p1.O_embed = ocean_embeds['O']
+    p1.C_embed = ocean_embeds['C']
+    p1.E_embed = ocean_embeds['E']
+    p1.A_embed = ocean_embeds['A']
+    p1.N_embed = ocean_embeds['N']
 

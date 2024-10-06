@@ -1,14 +1,11 @@
-import openai
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 import sys
 import os
-import numpy as np
-nltk.download('stopwords')
-nltk.download('punkt')
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+import numpy as np
 import requests
 
 def cosine_similarity(vector1, vector2):
@@ -29,25 +26,17 @@ def cosine_similarity(vector1, vector2):
     else:
         return dot_product / (norm1 * norm2)
 
-embed_url = "http://100.123.182.40:8000/v1/embeddings"
-ollama_url = "http://100.123.182.40:11434/api/generate"
+EMBED_URL = "http://100.123.182.40:8000/v1/embeddings"
+OLLAMA_URL = "http://100.123.182.40:11434/api/generate"
 
 def get_embeds(string1):
-    tokens1 = word_tokenize(string1.lower())
-    # Remove stop words
-    stop_words = set(stopwords.words('english'))
-    filtered_tokens1 = [word for word in tokens1 if word.isalpha() and word not in stop_words]
-
-    # Join tokens back into a string
-    filtered_text1 = ' '.join(filtered_tokens1)
-
     # Payload data
     payload = {
         "model": "BAAI/bge-en-icl",  # specify the model you are using
-        "input": f"{filtered_text1}"
+        "input": f"{string1}"
     }
     # Make the POST request to the Ollama API
-    response = requests.post(embed_url, json=payload)
+    response = requests.post(EMBED_URL, json=payload)
 
     # Parse the response
     data1 = response.json()["data"][0]["embedding"]
@@ -59,7 +48,6 @@ def get_ocean_embeds(Ocean):
         ocean_embeds.append(get_embeds(string))
 
     return ocean_embeds
-
 
 #string1 = """
 # I love exploring new ideas and experiences, always eager to try something different. I plan carefully and stick to my schedules to achieve my goals efficiently.
