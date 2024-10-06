@@ -90,8 +90,7 @@ def modify_disconnects(person_id, new_disconnects):
     driver = init_driver()
     run_query(driver=driver, query=query, parameters=parameters)
 
-def create_relationship(person_id1, person_id2):
-    conf_score = generate_relationship_score(person_id1, person_id2)
+def create_relationship(person1: Person, person2: Person, conf_score):
     query = """
     MATCH (p1:Person), (p2:Person)
     WHERE id(p1) = $person_id1 AND id(p2) = $person_id2
@@ -104,13 +103,24 @@ def create_relationship(person_id1, person_id2):
     
     # Parameterized query values
     parameters = {
-        "person_id1": person_id1,
-        "person_id2": person_id2,
+        "person_id1": person1.id,
+        "person_id2": person2.id,
         "conf_score": conf_score
     }
 
     driver = init_driver()
     run_query(driver=driver, query=query, parameters=parameters)
+    
+def delete_old_relationships():
+    query = """
+    MATCH (p1)-[r:CONNECTED_TO]->(p2)
+    WHERE r.friendship = false 
+    AND r.relationship_start_time < datetime() - duration({ hours: 48 })
+    DELETE r
+    """
+    
+    driver = init_driver()
+    run_query(driver=driver, query=query)
 
 # Get methods  
 @lru_cache(maxsize=2)
