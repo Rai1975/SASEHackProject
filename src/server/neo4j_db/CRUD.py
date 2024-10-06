@@ -1,6 +1,8 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import random
 from graph import init_driver, run_query
-from relationship_scoring import generate_relationship_score 
 from functools import lru_cache 
 import sys
 import os
@@ -61,11 +63,11 @@ def create_user(p1: Person):
     parameters = {
         "name": name,
         "alias": alias,
-        "O_embed": p1.O_embed,
-        "C_embed": p1.C_embed,
-        "E_embed": p1.E_embed,
-        "A_embed": p1.A_embed,
-        "N_embed": p1.N_embed,
+        "O_embed": O_embed,
+        "C_embed": C_embed,
+        "E_embed": E_embed,
+        "A_embed": A_embed,
+        "N_embed": N_embed,
         "tags": tags,
         "age": age
     }
@@ -110,7 +112,7 @@ def create_relationship(person1: Person, person2: Person, conf_score):
 
     driver = init_driver()
     run_query(driver=driver, query=query, parameters=parameters)
-    
+
 def delete_old_relationships():
     query = """
     MATCH (p1)-[r:CONNECTED_TO]->(p2)

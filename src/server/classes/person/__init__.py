@@ -9,9 +9,9 @@ class Person:
     def __init__(
         self,
         name: str,
-        id: int,
         tags: List[str],
         age: int,
+        id: int = 0,
         prompt_responses: Dict[str, str] = None,
         O_embed: List[float] = None,
         C_embed: List[float] = None,
@@ -71,8 +71,6 @@ class Person:
         return (f"Person(name={self.name}, id={self.id}, age={self.age}, "
                 f"tags={self.tags}, disconnects={self.disconnects})")
     
-def populate_prompt_responses():
-    pass
 
 def generate_embeds(p1: Person):
     prompt_list = p1.prompt_responses

@@ -7,23 +7,9 @@ import requests
 
 EMBED_URL = "http://100.123.182.40:8000/v1/embeddings"
 
-def cosine_similarity(vector1, vector2):
-    # Ensure the input vectors are numpy arrays
-    vector1 = np.array(vector1)
-    vector2 = np.array(vector2)
-    
-    # Compute the dot product of the two vectors
-    dot_product = np.dot(vector1, vector2)
-    
-    # Compute the L2 norms (magnitudes) of the vectors
-    norm1 = np.linalg.norm(vector1)
-    norm2 = np.linalg.norm(vector2)
-    
-    # Calculate cosine similarity
-    if norm1 == 0 or norm2 == 0:  # Handle zero vector cases
-        return 0.0
-    else:
-        return dot_product / (norm1 * norm2)
+def pre_processor(open_ans, cons_ans, extr_ans, agre_ans, neuro_ans):
+    text = [open_ans, cons_ans, extr_ans, agre_ans, neuro_ans]
+    return text
 
 def get_embeds(string):
     # Payload data
@@ -40,7 +26,7 @@ def get_embeds(string):
 
 def get_ocean_embeds(Ocean):
     ocean_embeds = []
-    for index,string in enumerate(Ocean):
+    for string in Ocean:
         ocean_embeds.append(get_embeds(string))
 
     return ocean_embeds
