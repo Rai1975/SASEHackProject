@@ -1,83 +1,74 @@
-import React, { useState, useEffect } from 'react';
-import { Box, IconButton, Typography } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
-import UserCard from './UserCard';
-import { User } from '../types/User'; // Assuming this type represents your User data structure
+import React from 'react';
+import { Box, Button, Typography } from '@mui/material';
+import UserCard from './UserCard'; // Assuming you already have a UserCard component
+import { User } from '../types/User'; // Make sure the User type is defined properly
 
-interface UserCardPageProps {
-  handleSwipe: (direction: string) => void;
-  onNavigate: (direction: 'left' | 'right') => void;
-}
+type UserCardPageProps = {
+  users: User[];  // Users array to display cards
+  currentIndex: number;  // Index of current user to display
+  handleSwipe: (direction: string) => void;  // Function to handle swipe (right/left)
+  onNavigate: (direction: 'left' | 'right') => void;  // Navigation function (previous/next)
+};
 
-const UserCardPage: React.FC<UserCardPageProps> = ({ handleSwipe, onNavigate }) => {
-  const [users, setUsers] = useState<User[]>([]); // State to store fetched users
-  const [currentIndex, setCurrentIndex] = useState(0); // State to track the current index
-  const [loading, setLoading] = useState(true); // State to show loading state
-  const [error, setError] = useState<string | null>(null); // State for handling errors
-
-  // Fetch users from the API when the component mounts
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true); // Set loading to true before fetching data
-        const response = await fetch('http://0.0.0.0:3000/api/users'); // Your API endpoint
-        if (!response.ok) {
-          throw new Error('Failed to fetch users');
-        }
-        const data = await response.json();
-        setUsers(data); // Set fetched users
-        setLoading(false); // Set loading to false after data is fetched
-      } catch (error) {
-        console.log(error); // Set error message if fetching fails
-        setLoading(false); // Set loading to false in case of error
-      }
-    };
-
-    fetchUsers();
-  }, []);
-
-  // Handle navigation between user cards (left and right)
-  const handleNavigate = (direction: 'left' | 'right') => {
-    if (direction === 'left' && currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    } else if (direction === 'right' && currentIndex < users.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
-  // Display loading or error states if necessary
-  if (loading) {
-    return <Typography variant="h6">Loading users...</Typography>;
-  }
-
-  if (error) {
-    return <Typography variant="h6">Error loading users: {error}</Typography>;
-  }
+const UserCardPage: React.FC<UserCardPageProps> = ({
+  users,
+  currentIndex,
+  handleSwipe,
+  onNavigate,
+}) => {
+  const currentUser = users[currentIndex]; // Get current user based on index
 
   return (
-    <Box sx={{ height: '100%', padding: '20px', position: 'relative' }}>
-      <IconButton
-        onClick={() => handleNavigate('left')}
-        sx={{ position: 'absolute', top: '50%', left: '-40px', zIndex: 1 }}
-        disabled={currentIndex === 0} // Disable left navigation if at the start
-      >
-        <ArrowBackIcon />
-      </IconButton>
-      <IconButton
-        onClick={() => handleNavigate('right')}
-        sx={{ position: 'absolute', top: '50%', right: '-40px', zIndex: 1 }}
-        disabled={currentIndex === users.length - 1} // Disable right navigation if at the end
-      >
-        <ArrowForwardIcon />
-      </IconButton>
-      <Typography variant="h5" mb={2}>
-        User Card
+    <Box sx={{ p: 5, backgroundColor: '#f5f5f5', textAlign: 'center', minHeight: '100vh' }}>
+      <Typography variant="h3" sx={{ fontWeight: 'bold', color: '#ff4081', mb: 4 }}>
+        Meet New Friends!
       </Typography>
-      {users.length > 0 ? (
-        <UserCard user={users[currentIndex]} handleSwipe={handleSwipe} />
+
+      {users.length > 0 && currentUser ? (
+        <UserCard user={currentUser} />  // Pass current user to UserCard
       ) : (
-        <Typography variant="h6">No more users available.</Typography>
+        <Typography variant="h5" sx={{ color: '#757575', mt: 4 }}>
+          No more users to display.
+        </Typography>
       )}
+
+      <Box sx={{ mt: 3 }}>
+        <Button
+          variant="contained"
+          color="secondary"
+          sx={{ mx: 1, backgroundColor: '#ff1744', fontWeight: 'bold', fontSize: '18px' }}
+          onClick={() => handleSwipe('left')}  // Handle left swipe
+        >
+          Pass
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          sx={{ mx: 1, backgroundColor: '#00e676', fontWeight: 'bold', fontSize: '18px' }}
+          onClick={() => handleSwipe('right')}  // Handle right swipe
+        >
+          Like
+        </Button>
+      </Box>
+
+      <Box sx={{ mt: 4 }}>
+        <Button
+          variant="outlined"
+          color="primary"
+          sx={{ mx: 1, fontWeight: 'bold', fontSize: '16px' }}
+          onClick={() => onNavigate('left')}  // Navigate to previous card
+        >
+          Previous
+        </Button>
+        <Button
+          variant="outlined"
+          color="primary"
+          sx={{ mx: 1, fontWeight: 'bold', fontSize: '16px' }}
+          onClick={() => onNavigate('right')}  // Navigate to next card
+        >
+          Next
+        </Button>
+      </Box>
     </Box>
   );
 };
