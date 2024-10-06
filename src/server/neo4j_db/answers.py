@@ -326,3 +326,4 @@ arr3 = []
 # print()
 # print(arr3)
 # print(sum(arr3)/5)
+

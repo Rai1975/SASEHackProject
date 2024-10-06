@@ -13,27 +13,27 @@ app = Flask(__name__)
 CORS(app)
 
 
-def generate_seed_data():
-    for i in range(20):
-        temp_person = Person(name=people_names[i], 
-                            age=random_ages[i], 
-                            tags=interests_combinations[i], 
-                            )
-        temp_person.add_prompt_response(openness_answers[i])
-        temp_person.add_prompt_response(conscientiousness_answers[i])
-        temp_person.add_prompt_response(extraversion_answers[i])
-        temp_person.add_prompt_response(agreeableness_answers[i])
-        temp_person.add_prompt_response(neuroticism_answers[i])
-        prompts = [openness_answers[i], conscientiousness_answers[i], extraversion_answers[i], agreeableness_answers[i], neuroticism_answers[i]]
-        embeds = []
-        for j in prompts:
-            embeds.append(get_embeds_fine(j)[0])
-        temp_person.O_embed = embeds[0]
-        temp_person.C_embed = embeds[1]
-        temp_person.E_embed = embeds[2]
-        temp_person.A_embed = embeds[3]
-        temp_person.N_embed = embeds[4]
-        create_user(temp_person, "33zx-s3d-dd", f"{people_names[i][0:3]}email.com")
+# def generate_seed_data():
+#     for i in range(20):
+#         temp_person = Person(name=people_names[i], 
+#                             age=random_ages[i], 
+#                             tags=interests_combinations[i], 
+#                             )
+#         temp_person.add_prompt_response(openness_answers[i])
+#         temp_person.add_prompt_response(conscientiousness_answers[i])
+#         temp_person.add_prompt_response(extraversion_answers[i])
+#         temp_person.add_prompt_response(agreeableness_answers[i])
+#         temp_person.add_prompt_response(neuroticism_answers[i])
+#         prompts = [openness_answers[i], conscientiousness_answers[i], extraversion_answers[i], agreeableness_answers[i], neuroticism_answers[i]]
+#         embeds = []
+#         for j in prompts:
+#             embeds.append(get_embeds_fine(j)[0])
+#         temp_person.O_embed = embeds[0]
+#         temp_person.C_embed = embeds[1]
+#         temp_person.E_embed = embeds[2]
+#         temp_person.A_embed = embeds[3]
+#         temp_person.N_embed = embeds[4]
+#         create_user(temp_person, "33zx-s3d-dd", f"{people_names[i][0:3]}email.com")
 
 @app.route("/api/userData/", methods=['GET'])
 def get_user_data(id: int):
@@ -93,12 +93,15 @@ def post_user_creation(response):
             p1.add_prompt_response(answer)
 
         # Generate OCEAN embeddings (assuming this is a function that returns the 5 factors)
-        embeds = get_ocean_embeds(p1.prompt_responses)
-        p1.O_embed = embeds[0]
-        p1.C_embed = embeds[1]
-        p1.E_embed = embeds[2]
-        p1.A_embed = embeds[3]
-        p1.N_embed = embeds[4]
+        # embeds = []
+        # for i in p1.prompt_responses:
+        #     embeds.append(get_embeds_fine(p1.prompt_responses))
+            
+        # p1.O_embed = embeds[0]
+        # p1.C_embed = embeds[1]
+        # p1.E_embed = embeds[2]
+        # p1.A_embed = embeds[3]
+        # p1.N_embed = embeds[4]
 
         # Create the user (assuming create_user is a function to handle this logic)
         create_user(p1, response["hashed_password"], response["email"])
@@ -110,17 +113,17 @@ def post_user_creation(response):
         # Handle any potential errors
         return jsonify({"error": str(e)}), 500
 
-@app.route("0.0.0.0:3000/api/sendFriendReq/<int:id1>/<int:id2>", methods=['POST'])
+@app.route("/api/sendFriendReq/<int:id1>/<int:id2>", methods=['POST'])
 def sendFriendReq(id1, id2):
     create_friendship_req(p1_id=id1, p2_id=id2)
     return jsonify({"message": "Friend request sent"}), 200
 
-@app.route("0.0.0.0:3000/api/validateFriendReq/<int:id1>/<int:id2>", methods=['POST'])
+@app.route("/api/validateFriendReq/<int:id1>/<int:id2>", methods=['POST'])
 def validateFriendReq(id1, id2):
     result = validate_friend_req(id1, id2)
     return jsonify({"message": result}), 200
 
-@app.route("0.0.0.0:3000/api/swipeRight/<int:id1/<int:id2>", methods=['POST'])
+@app.route("/api/swipeRight/<int:id1>/<int:id2>", methods=['POST'])
 def swipeRight(id1, id2):
     create_potential_match(id1, id2)
     return jsonify({"message": "Swiped Right!"}), 200
