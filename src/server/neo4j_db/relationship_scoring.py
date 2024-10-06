@@ -1,5 +1,4 @@
 import numpy as np
-import heapq
 
 def jaccard_similarity(tags1, tags2):
     # Combine both tag lists to get unique tags

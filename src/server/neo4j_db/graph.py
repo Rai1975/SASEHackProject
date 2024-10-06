@@ -6,8 +6,9 @@ from functools import lru_cache
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+from classes.person import Person
 from personality_embedding import pre_processor
-from API.generate_embeds import get_embeds 
+from API.generate_embeds import get_ocean_embeds 
 from answers import openness_answers, conscientiousness_answers, extraversion_answers, agreeableness_answers, neuroticism_answers, people_names, random_ages, interests_combinations, p1, p1_5, p2
 
 def init_driver():
@@ -48,14 +49,27 @@ def generate_alias():
     return alias
 
 
-def create_user(name, embeds, tags, age):
+def create_user(p1: Person):
     alias = generate_alias()
+    name = p1.name
+    age = p1.age
+    tags = p1.tags
+    O_embed = p1.O_embed
+    C_embed = p1.C_embed
+    E_embed = p1.E_embed
+    A_embed = p1.A_embed
+    N_embed = p1.N_embed
+    
     query = """
     CREATE (p:Person {
         fullName: $name,
         tags: $tags,
         age: $age,
-        vectorEmbed: $embeds,
+        O_embed = p1.O_embed,
+        C_embed = p1.C_embed,
+        E_embed = p1.E_embed,
+        A_embed = p1.A_embed,
+        N_embed = p1.N_embed,
         alias: $alias,
         disconnects: []
     })
@@ -65,7 +79,11 @@ def create_user(name, embeds, tags, age):
     parameters = {
         "name": name,
         "alias": alias,
-        "embeds": embeds,
+        "O_embed": p1.O_embed,
+        "C_embed": p1.C_embed,
+        "E_embed": p1.E_embed,
+        "A_embed": p1.A_embed,
+        "N_embed": p1.N_embed,
         "tags": tags,
         "age": age
     }
@@ -113,7 +131,6 @@ def create_relationship(person_id1, person_id2):
     run_query(driver=driver, query=query, parameters=parameters)
 
 # Get methods  
-  
 @lru_cache(maxsize=2)
 def get_person_information(person_id):
     query = """
@@ -297,23 +314,21 @@ def find_potential_friends(person_id):
         return potential_friends if potential_friends else None
 
 
-
-for i in range(20):
-    name = people_names[i]
-    text = pre_processor(openness_answers[i], 
-                        conscientiousness_answers[i], 
-                        extraversion_answers[i], 
-                        agreeableness_answers[i], 
-                        neuroticism_answers[i])
+# for i in range(20):
+#     name = people_names[i]
+#     text = pre_processor(openness_answers[i], 
+#                         conscientiousness_answers[i], 
+#                         extraversion_answers[i], 
+#                         agreeableness_answers[i], 
+#                         neuroticism_answers[i])
     
-    embeds = get_embeds(text)
-    age = random_ages[i]
-    tags = interests_combinations[i]
+#     embeds = get_ocean_embeds(text)
+#     age = random_ages[i]
+#     tags = interests_combinations[i]
     
-    create_user(name=name, embeds=embeds, tags=tags, age=age)
+#     create_user(name=name, text, tags=tags, age=age)
 
-# print(find_potential_friends(14))
-
+# print(find_potential_friends(47))
 
 
 def rank_friends(person_id):
