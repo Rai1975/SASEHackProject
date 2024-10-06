@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -16,20 +16,17 @@ import {
   FormGroup,
   FormControlLabel,
   Checkbox,
+  Grid,
+  Card,
+  CardContent,
+  CircularProgress,
 } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { SelectChangeEvent } from '@mui/material';
 
 import { themes } from './themes/themes';
-import { User } from './types/User';
-import { Message } from './types/Message';
 import { ThemeName } from './types/ThemeName';
-import { UserProvider } from './context/userContext';
-import FriendsPage from './components/FriendsPage';
-import UserCardPage from './components/UserCardPage';
-import ProspectivePage from './components/ProspectivePage';
-import SettingsModal from './components/SettingsModal';
 
 // Interests list
 const unique_interests = [
@@ -242,8 +239,11 @@ const InterestsPage: React.FC<{ username: string; password: string; answers: any
         }),
       });
       const data = await response.json();
+      
       if (response.ok) {
         alert('Thank you for submitting your answers and interests!');
+        onInterestsSubmit(selectedInterests); 
+        
       } else {
         alert('Failed to submit.');
       }
@@ -281,6 +281,80 @@ const InterestsPage: React.FC<{ username: string; password: string; answers: any
   );
 };
 
+// UserCard Component to display each user's card
+interface UserCardProps {
+  pid: number;
+  name: string;
+  age: string;
+  score: number;
+}
+
+const UserCard: React.FC<UserCardProps> = ({ pid, name, age, score }) => {
+  return (
+    <Card sx={{ minWidth: 275, margin: 2 }}>
+      <CardContent>
+        <Typography variant="h5" component="div">
+          {name}
+        </Typography>
+        <Typography color="text.secondary">Age: {age}</Typography>
+        <Typography variant="body2">
+          Relationship Score: {score.toFixed(2)}
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+};
+
+// PotentialFriends Component to fetch and render the user cards
+const PotentialFriends: React.FC = () => {
+  const [friends, setFriends] = useState<UserCardProps[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    // Replace 1 with the actual user ID dynamically if needed
+    const fetchPotentialFriends = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/getPotentialFriends/1');
+        if (response.ok) {
+          const data = await response.json();
+          setFriends(data);  // Assuming the data is an array of user objects
+        } else {
+          console.error('Failed to fetch potential friends');
+        }
+      } catch (error) {
+        console.error('Error fetching potential friends:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPotentialFriends();
+  }, []);
+
+  if (loading) {
+    return (
+      <Container sx={{ textAlign: 'center', mt: 5 }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
+  return (
+    <Container sx={{ mt: 5 }}>
+      <Typography variant="h4" fontWeight="bold" gutterBottom>
+        Potential Friends
+      </Typography>
+      <Grid container spacing={2}>
+        {friends.map((friend) => (
+          <Grid item xs={12} sm={6} md={4} key={friend.pid}>
+            <UserCard pid={friend.pid} name={friend.name} age={friend.age} score={friend.score} />
+          </Grid>
+        ))}
+      </Grid>
+    </Container>
+  );
+};
+
 // Main Page Component
 const MainPage: React.FC = () => {
   const [themeName, setThemeName] = useState<ThemeName>('default');
@@ -305,6 +379,7 @@ const MainPage: React.FC = () => {
   const handleInterestsSubmit = (selectedInterests: string[]) => {
     // All data (username, password, answers, and interests) will be sent via the API.
     console.log('Selected Interests:', selectedInterests);
+    navigate('/user-cards');
   };
 
   return (
@@ -325,7 +400,7 @@ const MainPage: React.FC = () => {
       <nav style={{ padding: '10px', display: 'flex', justifyContent: 'space-around' }}>
         <Link to="/login">Login</Link>
         <Link to="/friends">Friends</Link>
-        <Link to="/user-card">User Cards</Link>
+        <Link to="/user-cards">User Cards</Link>
         <Link to="/prospective">Prospective Matches</Link>
       </nav>
 
@@ -334,6 +409,7 @@ const MainPage: React.FC = () => {
         <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
         <Route path="/questions" element={username && password && <QuestionsPage username={username} password={password} onQuestionsSubmit={handleQuestionsSubmit} />} />
         <Route path="/interests" element={username && password && answers && <InterestsPage username={username} password={password} answers={answers} onInterestsSubmit={handleInterestsSubmit} />} />
+        <Route path="/user-cards" element={<PotentialFriends />} />
       </Routes>
     </ThemeProvider>
   );
