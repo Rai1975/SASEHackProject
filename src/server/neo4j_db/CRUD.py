@@ -93,12 +93,11 @@ def modify_disconnects(person_id, new_disconnects):
     driver = init_driver()
     run_query(driver=driver, query=query, parameters=parameters)
 
-def create_potential_match(person1_id, person2_id, conf_score):
+def create_potential_match(person1_id, person2_id):
     query = """
     MATCH (p1:Person), (p2:Person)
     WHERE id(p1) = $person_id1 AND id(p2) = $person_id2
     CREATE (p1)-[r:CONNECTED_TO {
-    confidence_score: $conf_score,
     relationship_start_time: datetime(),
     friendship: false
     }]->(p2)
@@ -108,7 +107,6 @@ def create_potential_match(person1_id, person2_id, conf_score):
     parameters = {
         "person_id1": person1_id,
         "person_id2": person2_id,
-        "conf_score": conf_score
     }
 
     driver = init_driver()
@@ -216,15 +214,15 @@ def delete_existing_relationship(p1_id, p2_id):
 
 # Get methods  
 @lru_cache(maxsize=2)
-def get_person_information(person_id):
+def get_person_information(email):
     query = """
     MATCH (p:Person)
-    WHERE id(p) = $person_id
+    WHERE p.email = $email
     RETURN p.fullName as Fname, id(p) as id, p.alias as alias, p.age as age, p.connects as connections;
     """
     
     parameters = {
-        "person_id": person_id
+        "email": email
     }
 
     driver = init_driver()
