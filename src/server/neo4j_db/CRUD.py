@@ -70,7 +70,7 @@ def create_user(p1: Person, hashed_password, email):
         "tags": tags,
         "age": age,
         "email": email,
-        "password": hashed_password
+        "hashed_password": hashed_password
     }
 
     driver = init_driver()
@@ -218,7 +218,7 @@ def get_person_information(email):
     query = """
     MATCH (p:Person)
     WHERE p.email = $email
-    RETURN p.fullName as Fname, id(p) as id, p.alias as alias, p.age as age, p.connects as connections;
+    RETURN p.fullName as Fname, id(p) as id, p.alias as alias, p.age as age, p.tags as tags;
     """
     
     parameters = {
@@ -238,7 +238,7 @@ def get_person_information(email):
                 "id" : record["id"],
                 "alias": record["alias"],
                 "age": record["age"],
-                "connections": record["connections"]
+                "tags": record["tags"]
             }
         else:
             return None  

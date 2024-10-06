@@ -69,14 +69,14 @@ def filter_friends(potential_friends, ptags):
 
     # Prepare the list to return top N friends based on the score
     return_list = []
-    num_friends_to_return = min(5, len(heap))  # Ensure we don't pop more than available
+    num_friends_to_return = min(7, len(heap))  # Ensure we don't pop more than available
 
     for _ in range(num_friends_to_return):
         # heappop returns a tuple: (-score, (pid, name, age, score))
         _, friend_info = heappop(heap)
         return_list.append(friend_info)
 
-    return return_list
+    return return_list[1:]
     
 
 # Lord forgive me

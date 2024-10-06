@@ -15,11 +15,22 @@ type UserCardProps = {
   handleSwipe: (direction: string, currentUserId: number, targetUserId: number) => void;
 };
 
+const current_user={
+  id: 50,
+  name: 'Olivia Smith',
+  email: 'olivia_smith@gmail.com',
+  age: 22,
+  photo: "",
+  interests: ["Music", "Travel", "Cooking"],
+
+}
+
 const UserCard: React.FC<UserCardProps> = ({ user, handleSwipe }) => {
   const onSwipe = async (direction: string) => {
     if (direction === 'Right') {
-      const id1 = user.id; // User who is swiping
-      const id2 = target_user.id; // The user being swiped on
+      const id1 = current_user.id
+      const id2 = user.id; // User who is swiped on
+
 
       try {
         const response = await fetch(`http://0.0.0.0:3000/api/swipeRight/${id1}/${id2}`, {
