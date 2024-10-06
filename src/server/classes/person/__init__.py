@@ -12,14 +12,14 @@ class Person:
         tags: List[str],
         age: int,
         id: int = 0,
-        prompt_responses: Dict[str, str] = None,
-        O_embed: List[float] = None,
-        C_embed: List[float] = None,
-        E_embed: List[float] = None,
-        A_embed: List[float] = None,
-        N_embed: List[float] = None,
-        disconnects: List[int] = None,
-        connects: List[int] = None
+        prompt_responses: Dict[str, str] = [],
+        O_embed: List[float] = [],
+        C_embed: List[float] = [],
+        E_embed: List[float] = [],
+        A_embed: List[float] = [],
+        N_embed: List[float] = [],
+        disconnects: List[int] = [],
+        connects: List[int] = []
     ):
         """
         Initialize a new Person instance.

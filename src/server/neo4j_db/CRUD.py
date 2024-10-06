@@ -1,13 +1,10 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+from neo4j_db.graph import init_driver, run_query
 import random
-from graph import init_driver, run_query
-from functools import lru_cache 
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from classes.person import Person
+from functools import lru_cache 
 
 def generate_alias():
     # whimsical nouns
@@ -49,11 +46,11 @@ def create_user(p1: Person):
         fullName: $name,
         tags: $tags,
         age: $age,
-        O_embed = p1.O_embed,
-        C_embed = p1.C_embed,
-        E_embed = p1.E_embed,
-        A_embed = p1.A_embed,
-        N_embed = p1.N_embed,
+        O_embed: $O_embed,
+        C_embed: $C_embed,
+        E_embed: $E_embed,
+        A_embed: $A_embed,
+        N_embed: $N_embed,
         alias: $alias,
         disconnects: []
     })
@@ -118,6 +115,9 @@ def delete_old_relationships():
     MATCH (p1)-[r:CONNECTED_TO]->(p2)
     WHERE r.friendship = false 
     AND r.relationship_start_time < datetime() - duration({ hours: 48 })
+    WITH p1, p2, r
+    SET p1.disconnects = COALESCE(p1.disconnects, []) + [id(p2)],
+        p2.disconnects = COALESCE(p2.disconnects, []) + [id(p1)]
     DELETE r
     """
     
@@ -130,7 +130,7 @@ def get_person_information(person_id):
     query = """
     MATCH (p:Person)
     WHERE id(p) = $person_id
-    RETURN p.fullName as Fname, id(p) as id, p.alias as alias, p.age as age;
+    RETURN p.fullName as Fname, id(p) as id, p.alias as alias, p.age as age, p.connects as connections;
     """
     
     parameters = {
@@ -149,7 +149,8 @@ def get_person_information(person_id):
                 "fullName": record["Fname"],
                 "id" : record["id"],
                 "alias": record["alias"],
-                "age": record["age"]
+                "age": record["age"],
+                "connections": record["connections"]
             }
         else:
             return None  
@@ -233,4 +234,45 @@ def get_person_tags(person_id):
             }
         else:
             return None 
-        
+
+@lru_cache(maxsize=2)
+def get_persons_friends(person_id, flag):
+    query1 = """
+    MATCH (p1:Person)->[r:CONNECTED_TO]->(p2:Person)
+    WHERE id(p1) = $person_id 
+    AND r.friendship = true
+    RETURN p2.id as id, p2.fullName as name, p2.tags as tags, p2.age as age 
+    """ 
+
+    query2 = """
+    MATCH (p1:Person)->[r:CONNECTED_TO]->(p2:Person)
+    WHERE id(p1) = $person_id 
+    AND r.friendship = false
+    AND r.relationship_start_time < datetime() - duration({ hours: 48 })
+    RETURN p2.id as id, p2.fullName as name, p2.tags as tags, p2.age as age 
+    """    
+    parameters = {
+        "person_id": person_id
+    }
+
+    driver = init_driver()
+
+    query = query1 if flag == 1 else query2
+
+    with driver.session() as session:
+        result = session.run(query, parameters)
+
+        friends = []
+
+        for record in result:
+            friends.append({
+                "name": record["name"],
+                "id": record["id"],
+                "tags": record["tags"],
+                "age": record["age"]
+            }) 
+
+        if friends:
+            return friends
+        else:
+            return None
