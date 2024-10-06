@@ -7,6 +7,8 @@ __pycache__/
 *.so
 
 src/server/tempCodeRunnerFile.python
+src/server/neo4j_db/tempCodeRunnerFile.py
+src/server/API/tempCodeRunnerFile.py
 
 # Distribution / packaging
 .Python
