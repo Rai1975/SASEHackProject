@@ -1,7 +1,11 @@
 import numpy as np
 from heapq import heappop, heappush
-from graph import init_driver, run_query
+from graph import init_driver
 from CRUD import get_person_embeds, get_person_tags
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+from classes.person import Person
 
 def jaccard_similarity(tags1, tags2):
     # Combine both tag lists to get unique tags
@@ -35,6 +39,41 @@ def cosine_similarity(vector1, vector2):
     else:
         return dot_product / (norm1 * norm2)
 
+
+def filter_friends(person: Person, potential_friends):
+    person_tags = person.tags
+    heap = []  
+
+    for p in potential_friends:
+        try:
+            import numpy as np
+            O = np.array(p.O_embed)
+            C = np.array(p.C_embed)
+            E = np.array(p.E_embed)
+            A = np.array(p.A_embed)
+            N = np.array(p.N_embed)
+            
+            # Calculate the average embedding
+            avg_sim_score_vector = (O + C + E + A + N) / 5
+        except Exception as e:
+            print(f"Error processing embeddings for person ID {p.id}: {e}")
+            continue  
+
+        score = generate_relationship_score(avg_sim_score_vector, person_tags, p.tags)
+
+        # Use negative score to simulate a max-heap since heapq is a min-heap
+        heappush(heap, (-score, (p.id, p.name, p.age)))
+
+    return_list = []
+    num_friends_to_return = min(5, len(heap))  # Ensure we don't pop more than available
+
+    for _ in range(num_friends_to_return):
+        # heappop returns a tuple: (-score, (id, name, age))
+        _, friend_info = heappop(heap)
+        return_list.append(friend_info)
+
+    return return_list
+    
 
 # Lord forgive me
 def generate_relationship_score(vector_sim_score, tags1, tags2):

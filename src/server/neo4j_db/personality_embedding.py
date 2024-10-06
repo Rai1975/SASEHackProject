@@ -1,7 +1,8 @@
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from sentence_transformers import SentenceTransformer
-import torch
+import sys
+import os
 import numpy as np
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 embedding_model = SentenceTransformer('all-mpnet-base-v2')
 
