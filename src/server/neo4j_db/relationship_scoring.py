@@ -40,8 +40,8 @@ def cosine_similarity(vector1, vector2):
         return dot_product / (norm1 * norm2)
 
 
-def filter_friends(person: Person, potential_friends):
-    person_tags = person.tags
+def filter_friends(potential_friends, ptags):
+    person_tags = ptags
     heap = []  
 
     for p in potential_friends:
@@ -117,15 +117,3 @@ def find_potential_friends(person_id):
             })
 
         return potential_friends if potential_friends else None
-
-
-def rank_friends(person_id):
-    potential_friends = find_potential_friends(person_id)
-    person1_tags = get_person_tags(person_id)
-    heapq = {}
-
-    for person in potential_friends:
-        score = 0.6 * person["similarity"] + 0.4 * (jaccard_similarity(person1_tags, person["tags"]))
-        heappush(heapq, (-score, person["pid"]))
-
-    return [heappop(heapq) for _ in range(5)]   
