@@ -231,7 +231,7 @@ const InterestsPage: React.FC<{ username: string; password: string; answers: any
 
   const handleSubmitInterests = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/questions', {
+      const response = await fetch('http://localhost:5000/api/postCreateUser', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
