@@ -20,7 +20,7 @@ import { Message } from './types/Message';
 import { Task } from './types/Task';
 import { ThemeName } from './types/ThemeName';
 import ReactDOM from 'react-dom';
-import { UserProvider } from './context/userContext';
+import { UserProvider, useUser } from './context/UserContext'; // Updated import
 import FriendsPage from './components/FriendsPage';
 import UserCardPage from './components/UserCardPage';
 import ProspectivePage from './components/ProspectivePage';
@@ -30,8 +30,8 @@ const Page: React.FC = () => {
   const [themeName, setThemeName] = useState<ThemeName>('default');
   const theme = themes[themeName];
 
-  // State variables (similar as before)
-  const [users, setUsers] = useState<User[]>([])
+  // State variables
+  const [users, setUsers] = useState<User[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matches, setMatches] = useState<User[]>([]);
   const [friends, setFriends] = useState<User[]>([]);
@@ -43,10 +43,13 @@ const Page: React.FC = () => {
   const [chatBackgrounds, setChatBackgrounds] = useState<{ [key: string]: string }>({});
   const [milestones, setMilestones] = useState<{ [key: string]: string[] }>({});
 
+  // Access user data from context
+  const { user, setUser } = useUser(); // Destructure user and setUser from context
+
   const handleThemeChange = (event: SelectChangeEvent<string>) => {
     setThemeName(event.target.value as ThemeName);
   };
-  
+
   const navigatePage = (direction: 'left' | 'right') => {
     if (direction === 'left') {
       if (currentIndex > 0) {
@@ -59,23 +62,37 @@ const Page: React.FC = () => {
     }
   };
 
-  // Fetch current user from API
+  // Fetch current user from API when component mounts or when user.email changes
   useEffect(() => {
-    const fetchCurrentUser = async ( email : string ) => {
+    const fetchCurrentUser = async () => {
+      if (!user || !user.email) {
+        console.error('No user or email available to fetch user data.');
+        return;
+      }
       try {
-        const response = await fetch(`0.0.0.0:5000/api/userData?email=${encodeURIComponent(email)}`); 
-        const userData = await response.json();
-        console.log(userData); // Handle the user data
+        const response = await fetch(`http://0.0.0.0:5000/api/userData?email=${encodeURIComponent(user.email)}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+        const userData: User = await response.json();
+        console.log(userData); // Handle the user data as needed
+        setUser(userData); // Update user in context
       } catch (error) {
         console.error('Error fetching user data:', error);
       }
     };
-  }, []); // Run this effect once when the component mounts
+    fetchCurrentUser();
+  }, [user?.email, setUser]); // Depend on user.email and setUser
 
+  // Fetch potential friends when user.id changes
   useEffect(() => {
-    const fetchUsers = async (currentUserId : Number) => {
+    const fetchUsers = async () => {
+      if (!user || !user.id) {
+        console.error('No user or user ID available to fetch potential friends.');
+        return;
+      }
       try {
-        const response = await fetch(`0.0.0.0:5000/api/getPotentialFriends/${currentUserId}`); // API call
+        const response = await fetch(`http://0.0.0.0:5000/api/getPotentialFriends/${user.id}`); // API call
         if (!response.ok) {
           throw new Error('Failed to fetch users');
         }
@@ -83,12 +100,11 @@ const Page: React.FC = () => {
         setUsers(data); // Set the users data
       } catch (error) {
         console.error('Error fetching users:', error);
-        console.log(error);
       }
     };
-  })
-
-
+  
+    fetchUsers();
+  }, [user?.id]); 
 
   return (
     <ThemeProvider theme={theme}>
@@ -122,7 +138,7 @@ const Page: React.FC = () => {
                 onSelectFriend={setSelectedChatUser}
                 onRemoveFriend={(userId) => setFriends(friends.filter((f) => f.id !== userId))}
                 milestones={milestones}
-                onNavigate={(direction) => navigatePage(direction)}
+                onNavigate={navigatePage}
               />
             }
           />
@@ -130,15 +146,15 @@ const Page: React.FC = () => {
             path="/user-card"
             element={
               <UserCardPage
-                users={users}
+                users={users} {/* Fixed the incomplete prop */}
                 currentIndex={currentIndex}
                 handleSwipe={(direction) => {
                   if (direction === 'Right' && users[currentIndex]) {
                     setMatches((prevMatches) => [...prevMatches, users[currentIndex]]);
                   }
-                  setCurrentIndex(currentIndex + 1);
+                  setCurrentIndex((prevIndex) => prevIndex + 1); // Use functional update
                 }}
-                onNavigate={(direction) => navigatePage(direction)}
+                onNavigate={navigatePage}
               />
             }
           />
@@ -151,10 +167,10 @@ const Page: React.FC = () => {
                 onAcceptMatch={(userId) => {
                   const userToAdd = matches.find((m) => m.id === userId);
                   if (userToAdd) {
-                    setFriends([...friends, userToAdd]);
+                    setFriends((prevFriends) => [...prevFriends, userToAdd]); // Use functional update
                   }
                 }}
-                onRejectMatch={(userId) => setMatches(matches.filter((m) => m.id !== userId))}
+                onRejectMatch={(userId) => setMatches((prevMatches) => prevMatches.filter((m) => m.id !== userId))}
                 timers={timers}
                 selectedChatUser={selectedChatUser}
                 messages={messages}
@@ -201,4 +217,13 @@ const Page: React.FC = () => {
   );
 };
 
-export default Page;
+// Wrapping the Page component with UserProvider
+const App: React.FC = () => {
+  return (
+    <UserProvider>
+      <Page />
+    </UserProvider>
+  );
+};
+
+export default App;

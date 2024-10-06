@@ -6,14 +6,13 @@ from flask_cors import CORS
 from classes.person import Person
 from neo4j_db.CRUD import create_user, get_person_information, get_persons_friends, get_person_tags, create_friendship_req, delete_existing_relationship, validate_friend_req, create_potential_match
 from neo4j_db.answers import people_names, random_ages, interests_combinations, openness_answers, conscientiousness_answers, neuroticism_answers, agreeableness_answers, extraversion_answers
-from API.generate_embeds import get_ocean_embeds, pre_processor
+from neo4j_db.benchmark import get_embeds_fine
 from neo4j_db.relationship_scoring import find_potential_friends, filter_friends
 
 app = Flask(__name__)
 CORS(app)
-"hhos"
-# Friends, temp friends, vector search results
-#BADDDDDD
+
+
 def generate_seed_data():
     for i in range(20):
         temp_person = Person(name=people_names[i], 
@@ -25,14 +24,16 @@ def generate_seed_data():
         temp_person.add_prompt_response(extraversion_answers[i])
         temp_person.add_prompt_response(agreeableness_answers[i])
         temp_person.add_prompt_response(neuroticism_answers[i])
-        text = pre_processor(openness_answers[i], temp_person.prompt_responses[1], temp_person.prompt_responses[2], temp_person.prompt_responses[3], temp_person.prompt_responses[4])
-        embeds = get_ocean_embeds(text)
+        prompts = [openness_answers[i], conscientiousness_answers[i], extraversion_answers[i], agreeableness_answers[i], neuroticism_answers[i]]
+        embeds = []
+        for j in prompts:
+            embeds.append(get_embeds_fine(j)[0])
         temp_person.O_embed = embeds[0]
         temp_person.C_embed = embeds[1]
         temp_person.E_embed = embeds[2]
         temp_person.A_embed = embeds[3]
         temp_person.N_embed = embeds[4]
-        create_user(temp_person, "test@email.com", "33zx-s3d-dd")
+        create_user(temp_person, "33zx-s3d-dd", f"{people_names[i][0:3]}email.com")
 
 @app.route("/api/userData/", methods=['GET'])
 def get_user_data(id: int):
@@ -125,7 +126,6 @@ def swipeRight(id1, id2):
     return jsonify({"message": "Swiped Right!"}), 200
 
 
-
-
 if __name__ == '__main__':
+    # generate_seed_data()
     app.run(debug=True)
