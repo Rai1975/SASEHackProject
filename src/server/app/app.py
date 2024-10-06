@@ -76,35 +76,34 @@ def get_potential_new_relationships(id: int):
         return jsonify({"error": "User not found"}), 404
     
 @app.route("/api/postCreateUser", methods=['POST'])
-def post_user_creation(response):
+def post_user_creation():
     try:
         # Extract the JSON package sent by the client
         response = request.get_json()
+        print(response)
 
         # Ensure required fields are present
-        if not all(key in response for key in ("name", "tags", "age", "prompt", "hashed_password", "email")):
+        if not all(key in response for key in ("username", "answers", "password", "interests")):
             return jsonify({"error": "Missing required fields"}), 400
 
-        # Create a new Person object
-        p1 = Person(response["name"], response["tags"], response["age"])
-
         # Add responses to prompts
-        for answer in response["prompt"]:
-            p1.add_prompt_response(answer)
+        answers = []
+        for prompt, answer in response["answers"].items():
+            answers.append(answer)
 
         # Generate OCEAN embeddings (assuming this is a function that returns the 5 factors)
-        # embeds = []
-        # for i in p1.prompt_responses:
-        #     embeds.append(get_embeds_fine(p1.prompt_responses))
+        embeds = []
+        for i in answers:
+            embeds.append(get_embeds_fine(i))
             
-        # p1.O_embed = embeds[0]
-        # p1.C_embed = embeds[1]
-        # p1.E_embed = embeds[2]
-        # p1.A_embed = embeds[3]
-        # p1.N_embed = embeds[4]
+        O_embed = embeds[0]
+        C_embed = embeds[1]
+        E_embed = embeds[2]
+        A_embed = embeds[3]
+        N_embed = embeds[4]
 
         # Create the user (assuming create_user is a function to handle this logic)
-        create_user(p1, response["hashed_password"], response["email"])
+        create_user(response["username"], response["interests"], O_embed, C_embed, E_embed, A_embed, N_embed, response["password"], (str(response["username"]) + "@mail.com") )
 
         # Return a success response
         return jsonify({"message": "User created successfully"}), 201

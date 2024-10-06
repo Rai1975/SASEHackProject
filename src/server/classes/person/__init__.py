@@ -10,7 +10,6 @@ class Person:
         self,
         name: str,
         tags: List[str],
-        age: int,
         id: int = 0,
         prompt_responses: Dict[str, str] = [],
         O_embed: List[float] = [],
@@ -38,7 +37,6 @@ class Person:
         self.name = name
         self.id = id
         self.tags = tags
-        self.age = age
         self.prompt_responses = prompt_responses
         self.O_embed = O_embed
         self.C_embed = C_embed

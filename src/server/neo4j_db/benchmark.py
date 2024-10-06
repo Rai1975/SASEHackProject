@@ -85,7 +85,7 @@ def get_embeds_fine(OCEAN_string):
 
     print(response.json())
     # Parse the response
-    data = response.json()["encoded"]
+    data = response.json()["encoded"][0]
     return data
 
 def cosine_similarity(vector1, vector2):

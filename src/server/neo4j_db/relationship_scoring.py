@@ -65,7 +65,7 @@ def filter_friends(potential_friends, ptags):
         score = generate_relationship_score(avg_sim_score_vector, person_tags, p['tags'])
 
         # Use negative score to simulate a max-heap since heapq is a min-heap
-        heappush(heap, (-score, (p['pid'], p['name'], p.get('age', 'N/A'), score)))
+        heappush(heap, (-score, (p['pid'], p['name'], score)))
 
     # Prepare the list to return top N friends based on the score
     return_list = []
@@ -124,7 +124,7 @@ def find_potential_friends(person_id):
          N_dotProduct / (N_personMagnitude * N_queryMagnitude) AS N_similarity
     RETURN p.fullName AS p_name, 
            O_similarity, C_similarity, E_similarity, A_similarity, N_similarity, 
-           id(p) AS pid, p.tags AS tags, p.age as age
+           id(p) AS pid, p.tags AS tags
     ORDER BY (O_similarity + C_similarity + E_similarity + A_similarity + N_similarity) DESC;
     """
 
@@ -153,8 +153,7 @@ def find_potential_friends(person_id):
                 "A_similarity": record["A_similarity"],
                 "N_similarity": record["N_similarity"],
                 "pid": record["pid"],
-                "tags": record["tags"],
-                "age": record["age"]
+                "tags": record["tags"]
             })
 
         return potential_friends if potential_friends else None

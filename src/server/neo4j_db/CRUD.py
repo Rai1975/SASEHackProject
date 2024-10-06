@@ -30,22 +30,20 @@ def generate_alias():
     return alias
 
 
-def create_user(p1: Person, hashed_password, email):
+def create_user(name, tags, O_embed, C_embed, E_embed, A_embed, N_embed, hashed_password, email):
     alias = generate_alias()
-    name = p1.name
-    age = p1.age
-    tags = p1.tags
-    O_embed = p1.O_embed
-    C_embed = p1.C_embed
-    E_embed = p1.E_embed
-    A_embed = p1.A_embed
-    N_embed = p1.N_embed
+    name = name
+    tags = tags
+    O_embed = O_embed
+    C_embed = C_embed
+    E_embed = E_embed
+    A_embed = A_embed
+    N_embed = N_embed
     
     query = """
     CREATE (p:Person {
         fullName: $name,
         tags: $tags,
-        age: $age,
         O_embed: $O_embed,
         C_embed: $C_embed,
         E_embed: $E_embed,
@@ -68,7 +66,6 @@ def create_user(p1: Person, hashed_password, email):
         "A_embed": A_embed,
         "N_embed": N_embed,
         "tags": tags,
-        "age": age,
         "email": email,
         "hashed_password": hashed_password
     }
@@ -218,7 +215,7 @@ def get_person_information(email):
     query = """
     MATCH (p:Person)
     WHERE p.email = $email
-    RETURN p.fullName as Fname, id(p) as id, p.alias as alias, p.age as age, p.tags as tags;
+    RETURN p.fullName as Fname, id(p) as id, p.alias as alias, p.tags as tags;
     """
     
     parameters = {
@@ -237,7 +234,6 @@ def get_person_information(email):
                 "fullName": record["Fname"],
                 "id" : record["id"],
                 "alias": record["alias"],
-                "age": record["age"],
                 "tags": record["tags"]
             }
         else:
@@ -332,7 +328,7 @@ def get_persons_friends(person_id, flag):
     MATCH (p1:Person)-[r:CONNECTED_TO]-(p2:Person)
     WHERE id(p1) = $person_id 
     AND r.friendship = true
-    RETURN p2.id as id, p2.fullName as name, p2.tags as tags, p2.age as age 
+    RETURN p2.id as id, p2.fullName as name, p2.tags as tags
     """ 
 
     query2 = """
@@ -340,7 +336,7 @@ def get_persons_friends(person_id, flag):
     WHERE id(p1) = $person_id 
     AND r.friendship = false
     AND r.relationship_start_time < datetime() - duration({ hours: 48 })
-    RETURN p2.id as id, p2.fullName as name, p2.tags as tags, p2.age as age 
+    RETURN p2.id as id, p2.fullName as name, p2.tags as tags
     """    
     parameters = {
         "person_id": person_id
@@ -359,8 +355,7 @@ def get_persons_friends(person_id, flag):
             friends.append({
                 "name": record["name"],
                 "id": record["id"],
-                "tags": record["tags"],
-                "age": record["age"]
+                "tags": record["tags"]
             }) 
 
         if friends:
