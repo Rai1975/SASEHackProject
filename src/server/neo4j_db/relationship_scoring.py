@@ -62,7 +62,7 @@ def filter_friends(potential_friends, ptags):
         score = generate_relationship_score(avg_sim_score_vector, person_tags, p.tags)
 
         # Use negative score to simulate a max-heap since heapq is a min-heap
-        heappush(heap, (-score, (p.id, p.name, p.age)))
+        heappush(heap, (-score, (p.id, p.name, p.age, score)))
 
     return_list = []
     num_friends_to_return = min(5, len(heap))  # Ensure we don't pop more than available

@@ -30,7 +30,7 @@ def generate_alias():
     return alias
 
 
-def create_user(p1: Person):
+def create_user(p1: Person, hashed_password, email):
     alias = generate_alias()
     name = p1.name
     age = p1.age
@@ -52,6 +52,8 @@ def create_user(p1: Person):
         A_embed: $A_embed,
         N_embed: $N_embed,
         alias: $alias,
+        email: $email,
+        password: $hashed_password,
         disconnects: []
     })
     """
@@ -66,7 +68,9 @@ def create_user(p1: Person):
         "A_embed": A_embed,
         "N_embed": N_embed,
         "tags": tags,
-        "age": age
+        "age": age,
+        "email": email,
+        "password": hashed_password
     }
 
     driver = init_driver()
@@ -89,7 +93,7 @@ def modify_disconnects(person_id, new_disconnects):
     driver = init_driver()
     run_query(driver=driver, query=query, parameters=parameters)
 
-def create_relationship(person1: Person, person2: Person, conf_score):
+def create_potential_match(person1_id, person2_id, conf_score):
     query = """
     MATCH (p1:Person), (p2:Person)
     WHERE id(p1) = $person_id1 AND id(p2) = $person_id2
@@ -102,13 +106,81 @@ def create_relationship(person1: Person, person2: Person, conf_score):
     
     # Parameterized query values
     parameters = {
-        "person_id1": person1.id,
-        "person_id2": person2.id,
+        "person_id1": person1_id,
+        "person_id2": person2_id,
         "conf_score": conf_score
     }
 
     driver = init_driver()
     run_query(driver=driver, query=query, parameters=parameters)
+
+
+def create_friendship_req(p1_id, p2_id):
+    query = """
+    MATCH (p1:Person), (p2: Person)
+    WHERE id(p1) = $p1_id AND id(p2) = $p2_id
+    CREATE (p1)-[:FRIEND_REQUEST {sent_at: datetime()}]->(p2)
+    RETURN p1, p2
+    """
+    parameters={
+        "p1_id": p1_id,
+        "p2_id": p2_id
+    }
+
+    driver = init_driver()
+    run_query(driver, query, parameters)
+
+def validate_friend_req(p1_id, p2_id):
+    query1 = """
+    MATCH (p1:Person)-[r:FRIEND_REQUEST]->(p2:Person)
+    WHERE id(p1) = $p1_id AND id(p2) = $p2_id
+    RETURN COUNT(*) as count1
+    """
+    
+    query2 = """
+    MATCH (p2:Person)-[r:FRIEND_REQUEST]->(p1:Person)
+    WHERE id(p1) = $p1_id AND id(p2) = $p2_id
+    RETURN COUNT(*) as count2
+    """
+
+    create_connection_query = """
+    MATCH (p1:Person), (p2:Person)
+    WHERE id(p1) = $p1_id AND id(p2) = $p2_id
+    CREATE (p1)-[:CONNECTED_TO {friendship: true, connected_at: datetime()}]->(p2),
+           (p2)-[:CONNECTED_TO {friendship: true, connected_at: datetime()}]->(p1)
+    """
+
+    delete_friend_request_query = """
+    MATCH (p1:Person)-[r1:FRIEND_REQUEST]->(p2:Person),
+          (p2:Person)-[r2:FRIEND_REQUEST]->(p1:Person)
+    WHERE id(p1) = $p1_id AND id(p2) = $p2_id
+    DELETE r1, r2
+    """
+
+    parameters = {
+        "p1_id": p1_id,
+        "p2_id": p2_id
+    }
+
+    driver = init_driver()
+
+    with driver.session() as session:
+        # Check if friend requests exist both ways
+        result1 = session.run(query1, parameters)
+        result2 = session.run(query2, parameters)
+
+        record1 = result1.single()
+        record2 = result2.single()
+
+        if record1["count1"] > 0 and record2["count2"] > 0:
+            # If friend requests exist both ways, create the CONNECTED_TO relationships
+            session.run(create_connection_query, parameters)
+            # Then delete the FRIEND_REQUEST relationships
+            session.run(delete_friend_request_query, parameters)
+            return "Friendship established!"
+        else:
+            return "Friend request not mutual or not found."
+  
 
 def delete_old_relationships():
     query = """
@@ -123,6 +195,24 @@ def delete_old_relationships():
     
     driver = init_driver()
     run_query(driver=driver, query=query)
+
+def delete_existing_relationship(p1_id, p2_id):
+    query="""
+    MATCH (p1:Person)-[r:CONNECTED_TO]->(p2:Person)
+    WHERE id(p1) = $p1_id AND id(p2) = $p2_id
+    DELETE r
+    WITH p1, p2
+    SET p1.disconnected = coalesce(p1.disconnected, []) + [p2.id],
+        p2.disconnected = coalesce(p2.disconnected, []) + [p1.id]
+    RETURN p1, p2
+    """
+    parameters={
+        "p1_id": p1_id,
+        "p2_id": p2_id
+    }
+
+    driver = init_driver()
+    run_query(driver, query, parameters)
 
 # Get methods  
 @lru_cache(maxsize=2)
