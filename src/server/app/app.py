@@ -5,7 +5,6 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from classes.person import Person
 from neo4j_db.CRUD import create_user, get_person_information, get_persons_friends, get_person_tags, create_friendship_req, delete_existing_relationship, validate_friend_req, create_potential_match
-from neo4j_db.answers import people_names, random_ages, interests_combinations, openness_answers, conscientiousness_answers, neuroticism_answers, agreeableness_answers, extraversion_answers
 from neo4j_db.benchmark import get_embeds_fine
 from neo4j_db.relationship_scoring import find_potential_friends, filter_friends
 
@@ -103,7 +102,7 @@ def post_user_creation():
         N_embed = embeds[4]
 
         # Create the user (assuming create_user is a function to handle this logic)
-        record = create_user(response["username"], response["interests"], O_embed, C_embed, E_embed, A_embed, N_embed, response["password"], (str(response["username"]) + "@mail.com") )
+        record = create_user(response["username"], response["interests"], O_embed, C_embed, E_embed, A_embed, N_embed, response["password"], (str(response["username"]) + "@mail.com"), response['answer']['bio'] )
 
         # Return a success response
         return jsonify({"message": "User created successfully", "id": record['id']}), 201

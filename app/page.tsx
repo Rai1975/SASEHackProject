@@ -83,7 +83,7 @@ const QuestionsPage: React.FC<{ username: string; password: string; onQuestionsS
     extraversion: '',
     agreeableness: '',
     neuroticism: '',
-    bio: ''
+    bio: ''  // Bio field added here
   });
 
   const handleAnswerChange = (
@@ -94,7 +94,7 @@ const QuestionsPage: React.FC<{ username: string; password: string; onQuestionsS
   };
 
   const handleSubmitAnswers = () => {
-    onQuestionsSubmit(answers);  
+    onQuestionsSubmit(answers);  // Pass the answers back to the parent component
   };
 
   return (
@@ -193,6 +193,7 @@ const QuestionsPage: React.FC<{ username: string; password: string; onQuestionsS
         />
       </Paper>
 
+      {/* Bio Question */}
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="h6">Bio</Typography>
         <Typography variant="body1">
@@ -203,8 +204,8 @@ const QuestionsPage: React.FC<{ username: string; password: string; onQuestionsS
           multiline
           minRows={4}
           variant="outlined"
-          value={answers.openness}
-          onChange={(e) => handleAnswerChange(e, 'openness')}
+          value={answers.bio}
+          onChange={(e) => handleAnswerChange(e, 'bio')}
           sx={{ mt: 2 }}
         />
       </Paper>
@@ -288,12 +289,12 @@ interface UserCardProps {
   pid: number;
   alias: string;
   interests: string[];
-  bio: string[];
+  bio: string;
   onRemove: (pid: number) => void;
   onSelect: (user: { pid: number; alias: string }) => void;
 }
 
-const UserCard: React.FC<UserCardProps> = ({ pid, alias, interests, onRemove, onSelect }) => {
+const UserCard: React.FC<UserCardProps> = ({ pid, alias, interests, bio, onRemove, onSelect }) => {
   return (
     <Card sx={{ minWidth: 275, margin: 2 }}>
       <CardContent>
@@ -305,6 +306,9 @@ const UserCard: React.FC<UserCardProps> = ({ pid, alias, interests, onRemove, on
             <Chip key={index} label={interest} sx={{ margin: 0.5 }} />
           ))}
         </Box>
+        <Typography component="div">
+          Bio: {bio} {/* Render the bio */}
+        </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
           <IconButton color="primary" onClick={() => onSelect({ pid, alias })}>
             <CheckIcon />
@@ -364,7 +368,7 @@ const ChatPage: React.FC<{ selectedUser: { alias: string } }> = ({ selectedUser 
 const PotentialFriends: React.FC = () => {
   const [friends, setFriends] = useState<UserCardProps[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [selectedUser, setSelectedUser] = useState<{ pid: number; alias: string } | null>(null); // ADDITION 3: Manage selected user for chat
+  const [selectedUser, setSelectedUser] = useState<{ pid: number; alias: string } | null>(null);
 
   useEffect(() => {
     const fetchPotentialFriends = async () => {
@@ -377,7 +381,7 @@ const PotentialFriends: React.FC = () => {
             pid: friend[0],
             alias: friend[2],
             interests: friend[3],
-            bio: friend[4],
+            bio: friend[4]  // Include bio in user data
           }));
 
           setFriends(friendsData);
@@ -399,7 +403,7 @@ const PotentialFriends: React.FC = () => {
   };
 
   const handleSelectFriend = (user: { pid: number; alias: string }) => {
-    setSelectedUser(user); // ADDITION 4: Select user and open chat
+    setSelectedUser(user);
   };
 
   if (loading) {
@@ -416,8 +420,8 @@ const PotentialFriends: React.FC = () => {
         Potential Friends
       </Typography>
 
-      {selectedUser ? ( // ADDITION 5: Conditionally render chat or user cards
-        <ChatPage selectedUser={selectedUser} /> // Chat interface if a user is selected
+      {selectedUser ? (
+        <ChatPage selectedUser={selectedUser} />
       ) : (
         <Grid container spacing={2}>
           {friends.map((friend) => (
@@ -426,7 +430,7 @@ const PotentialFriends: React.FC = () => {
                 pid={friend.pid}
                 alias={friend.alias}
                 interests={friend.interests}
-                bio = {friend.bio}
+                bio={friend.bio}
                 onRemove={handleRemoveFriend}
                 onSelect={handleSelectFriend}
               />
