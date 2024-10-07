@@ -103,10 +103,10 @@ def post_user_creation():
         N_embed = embeds[4]
 
         # Create the user (assuming create_user is a function to handle this logic)
-        create_user(response["username"], response["interests"], O_embed, C_embed, E_embed, A_embed, N_embed, response["password"], (str(response["username"]) + "@mail.com") )
+        record = create_user(response["username"], response["interests"], O_embed, C_embed, E_embed, A_embed, N_embed, response["password"], (str(response["username"]) + "@mail.com") )
 
         # Return a success response
-        return jsonify({"message": "User created successfully"}), 201
+        return jsonify({"message": "User created successfully", "id": record['id']}), 201
 
     except Exception as e:
         # Handle any potential errors

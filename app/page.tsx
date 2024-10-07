@@ -20,10 +20,10 @@ import {
   Card,
   CardContent,
   CircularProgress,
+  Chip,
 } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { SelectChangeEvent } from '@mui/material';
 
 import { themes } from './themes/themes';
 import { ThemeName } from './types/ThemeName';
@@ -48,21 +48,6 @@ const LoginPage: React.FC<{ onLogin: (username: string, password: string) => voi
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 5 }}>
-      <Box
-        sx={{
-          fontSize: '100px',
-          animation: 'wave 1s infinite',
-          '@keyframes wave': {
-            '0%': { transform: 'rotate(0deg)' },
-            '25%': { transform: 'rotate(15deg)' },
-            '50%': { transform: 'rotate(0deg)' },
-            '75%': { transform: 'rotate(-15deg)' },
-            '100%': { transform: 'rotate(0deg)' },
-          },
-        }}
-      >
-        👋
-      </Box>
       <Typography variant="h3" fontWeight="bold" gutterBottom>
         Welcome to Hi-Five!
       </Typography>
@@ -281,25 +266,26 @@ const InterestsPage: React.FC<{ username: string; password: string; answers: any
   );
 };
 
-// UserCard Component to display each user's card
+// UserCard Component to display each user's card with interests as Chips
 interface UserCardProps {
   pid: number;
-  name: string;
-  age: string;
-  score: number;
+  alias: string;
+  interests: string[];
 }
 
-const UserCard: React.FC<UserCardProps> = ({ pid, name, age, score }) => {
+const UserCard: React.FC<UserCardProps> = ({ alias, interests }) => {
   return (
     <Card sx={{ minWidth: 275, margin: 2 }}>
       <CardContent>
         <Typography variant="h5" component="div">
-          {name}
+          {alias} {/* Render the alias */}
         </Typography>
-        <Typography color="text.secondary">Age: {age}</Typography>
-        <Typography variant="body2">
-          Relationship Score: {score.toFixed(2)}
-        </Typography>
+        {/* Render interests as small buttons (chips) */}
+        <Box sx={{ mt: 2 }}>
+          {interests.map((interest, index) => (
+            <Chip key={index} label={interest} sx={{ margin: 0.5 }} />
+          ))}
+        </Box>
       </CardContent>
     </Card>
   );
@@ -311,13 +297,21 @@ const PotentialFriends: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Replace 1 with the actual user ID dynamically if needed
     const fetchPotentialFriends = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/getPotentialFriends/1');
+        const userId = "1"; // Hardcoded user ID
+        const response = await fetch(`http://localhost:5000/api/getPotentialFriends/${userId}`);
         if (response.ok) {
           const data = await response.json();
-          setFriends(data);  // Assuming the data is an array of user objects
+          
+          
+          const friendsData = data.map((friend: any) => ({
+            pid: friend[0],
+            alias: friend[2],
+            interests: friend[3], // Assuming the fourth element is interests array
+          }));
+
+          setFriends(friendsData);
         } else {
           console.error('Failed to fetch potential friends');
         }
@@ -347,7 +341,7 @@ const PotentialFriends: React.FC = () => {
       <Grid container spacing={2}>
         {friends.map((friend) => (
           <Grid item xs={12} sm={6} md={4} key={friend.pid}>
-            <UserCard pid={friend.pid} name={friend.name} age={friend.age} score={friend.score} />
+            <UserCard pid={friend.pid} alias={friend.alias} interests={friend.interests} />
           </Grid>
         ))}
       </Grid>
@@ -377,7 +371,6 @@ const MainPage: React.FC = () => {
   };
 
   const handleInterestsSubmit = (selectedInterests: string[]) => {
-    // All data (username, password, answers, and interests) will be sent via the API.
     console.log('Selected Interests:', selectedInterests);
     navigate('/user-cards');
   };

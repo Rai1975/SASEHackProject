@@ -54,6 +54,7 @@ def create_user(name, tags, O_embed, C_embed, E_embed, A_embed, N_embed, hashed_
         password: $hashed_password,
         disconnects: []
     })
+    RETURN id(p) as id
     """
 
     # Parameterized query values
@@ -71,7 +72,17 @@ def create_user(name, tags, O_embed, C_embed, E_embed, A_embed, N_embed, hashed_
     }
 
     driver = init_driver()
-    run_query(driver=driver, query=query, parameters=parameters)
+    with driver.session() as session:
+        result = session.run(query, parameters)
+        
+        record = result.single()
+
+        if record:
+            return {
+                "id": record['id']
+            }
+        else:
+            return None  
 
 
 def modify_disconnects(person_id, new_disconnects):
