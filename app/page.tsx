@@ -22,7 +22,7 @@ import {
   CircularProgress,
   Chip,
 } from '@mui/material';
-import { Settings as SettingsIcon } from '@mui/icons-material';
+import { Check as CheckIcon, Close as CloseIcon, Settings as SettingsIcon } from '@mui/icons-material';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 
 import { themes } from './themes/themes';
@@ -83,6 +83,7 @@ const QuestionsPage: React.FC<{ username: string; password: string; onQuestionsS
     extraversion: '',
     agreeableness: '',
     neuroticism: '',
+    bio: ''
   });
 
   const handleAnswerChange = (
@@ -93,7 +94,7 @@ const QuestionsPage: React.FC<{ username: string; password: string; onQuestionsS
   };
 
   const handleSubmitAnswers = () => {
-    onQuestionsSubmit(answers);  // Pass the answers back to the parent component
+    onQuestionsSubmit(answers);  
   };
 
   return (
@@ -192,6 +193,22 @@ const QuestionsPage: React.FC<{ username: string; password: string; onQuestionsS
         />
       </Paper>
 
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Typography variant="h6">Bio</Typography>
+        <Typography variant="body1">
+          Enter a quick little bio about yourself!
+        </Typography>
+        <TextField
+          fullWidth
+          multiline
+          minRows={4}
+          variant="outlined"
+          value={answers.openness}
+          onChange={(e) => handleAnswerChange(e, 'openness')}
+          sx={{ mt: 2 }}
+        />
+      </Paper>
+
       <Button variant="contained" color="primary" onClick={handleSubmitAnswers}>
         Submit Answers
       </Button>
@@ -266,28 +283,80 @@ const InterestsPage: React.FC<{ username: string; password: string; answers: any
   );
 };
 
-// UserCard Component to display each user's card with interests as Chips
+// ADDITION 1: UserCard Component with check and cross buttons
 interface UserCardProps {
   pid: number;
   alias: string;
   interests: string[];
+  bio: string[];
+  onRemove: (pid: number) => void;
+  onSelect: (user: { pid: number; alias: string }) => void;
 }
 
-const UserCard: React.FC<UserCardProps> = ({ alias, interests }) => {
+const UserCard: React.FC<UserCardProps> = ({ pid, alias, interests, onRemove, onSelect }) => {
   return (
     <Card sx={{ minWidth: 275, margin: 2 }}>
       <CardContent>
         <Typography variant="h5" component="div">
           {alias} {/* Render the alias */}
         </Typography>
-        {/* Render interests as small buttons (chips) */}
         <Box sx={{ mt: 2 }}>
           {interests.map((interest, index) => (
             <Chip key={index} label={interest} sx={{ margin: 0.5 }} />
           ))}
         </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+          <IconButton color="primary" onClick={() => onSelect({ pid, alias })}>
+            <CheckIcon />
+          </IconButton>
+          <IconButton color="secondary" onClick={() => onRemove(pid)}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
       </CardContent>
     </Card>
+  );
+};
+
+// ADDITION 2: ChatPage Component for chatting with selected users
+const ChatPage: React.FC<{ selectedUser: { alias: string } }> = ({ selectedUser }) => {
+  const [messages, setMessages] = useState([
+    { sender: 'User', text: `Hi! My name is ${selectedUser.alias}.` },
+    { sender: 'You', text: 'Nice to meet you! Do you like hiking?' },
+    { sender: 'User', text: 'Yes! I love hiking, especially in the mountains.' }
+  ]);
+  const [newMessage, setNewMessage] = useState('');
+
+  const handleSendMessage = () => {
+    if (newMessage.trim()) {
+      setMessages([...messages, { sender: 'You', text: newMessage }]);
+      setNewMessage('');
+    }
+  };
+
+  return (
+    <Container sx={{ mt: 5 }}>
+      <Typography variant="h4" fontWeight="bold" gutterBottom>
+        Chat with {selectedUser.alias}
+      </Typography>
+      <Box sx={{ border: '1px solid grey', borderRadius: 2, padding: 2, minHeight: '300px', mb: 2 }}>
+        {messages.map((msg, index) => (
+          <Typography key={index} align={msg.sender === 'You' ? 'right' : 'left'}>
+            <strong>{msg.sender}:</strong> {msg.text}
+          </Typography>
+        ))}
+      </Box>
+      <TextField
+        fullWidth
+        variant="outlined"
+        label="Type a message"
+        value={newMessage}
+        onChange={(e) => setNewMessage(e.target.value)}
+      />
+      <Button variant="contained" color="primary" onClick={handleSendMessage} sx={{ mt: 2 }}>
+        Send
+      </Button>
+    </Container>
   );
 };
 
@@ -295,6 +364,7 @@ const UserCard: React.FC<UserCardProps> = ({ alias, interests }) => {
 const PotentialFriends: React.FC = () => {
   const [friends, setFriends] = useState<UserCardProps[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [selectedUser, setSelectedUser] = useState<{ pid: number; alias: string } | null>(null); // ADDITION 3: Manage selected user for chat
 
   useEffect(() => {
     const fetchPotentialFriends = async () => {
@@ -303,12 +373,11 @@ const PotentialFriends: React.FC = () => {
         const response = await fetch(`http://localhost:5000/api/getPotentialFriends/${userId}`);
         if (response.ok) {
           const data = await response.json();
-          
-          
           const friendsData = data.map((friend: any) => ({
             pid: friend[0],
             alias: friend[2],
-            interests: friend[3], // Assuming the fourth element is interests array
+            interests: friend[3],
+            bio: friend[4],
           }));
 
           setFriends(friendsData);
@@ -325,6 +394,14 @@ const PotentialFriends: React.FC = () => {
     fetchPotentialFriends();
   }, []);
 
+  const handleRemoveFriend = (pid: number) => {
+    setFriends((prevFriends) => prevFriends.filter((friend) => friend.pid !== pid));
+  };
+
+  const handleSelectFriend = (user: { pid: number; alias: string }) => {
+    setSelectedUser(user); // ADDITION 4: Select user and open chat
+  };
+
   if (loading) {
     return (
       <Container sx={{ textAlign: 'center', mt: 5 }}>
@@ -338,13 +415,25 @@ const PotentialFriends: React.FC = () => {
       <Typography variant="h4" fontWeight="bold" gutterBottom>
         Potential Friends
       </Typography>
-      <Grid container spacing={2}>
-        {friends.map((friend) => (
-          <Grid item xs={12} sm={6} md={4} key={friend.pid}>
-            <UserCard pid={friend.pid} alias={friend.alias} interests={friend.interests} />
-          </Grid>
-        ))}
-      </Grid>
+
+      {selectedUser ? ( // ADDITION 5: Conditionally render chat or user cards
+        <ChatPage selectedUser={selectedUser} /> // Chat interface if a user is selected
+      ) : (
+        <Grid container spacing={2}>
+          {friends.map((friend) => (
+            <Grid item xs={12} sm={6} md={4} key={friend.pid}>
+              <UserCard
+                pid={friend.pid}
+                alias={friend.alias}
+                interests={friend.interests}
+                bio = {friend.bio}
+                onRemove={handleRemoveFriend}
+                onSelect={handleSelectFriend}
+              />
+            </Grid>
+          ))}
+        </Grid>
+      )}
     </Container>
   );
 };
