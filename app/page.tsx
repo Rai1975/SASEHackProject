@@ -83,6 +83,7 @@ const QuestionsPage: React.FC<{ username: string; password: string; onQuestionsS
     extraversion: '',
     agreeableness: '',
     neuroticism: '',
+    bio: ''
   });
 
   const handleAnswerChange = (
@@ -192,6 +193,22 @@ const QuestionsPage: React.FC<{ username: string; password: string; onQuestionsS
         />
       </Paper>
 
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Typography variant="h6">Bio</Typography>
+        <Typography variant="body1">
+          Enter a quick little bio about yourself!
+        </Typography>
+        <TextField
+          fullWidth
+          multiline
+          minRows={4}
+          variant="outlined"
+          value={answers.openness}
+          onChange={(e) => handleAnswerChange(e, 'openness')}
+          sx={{ mt: 2 }}
+        />
+      </Paper>
+
       <Button variant="contained" color="primary" onClick={handleSubmitAnswers}>
         Submit Answers
       </Button>
@@ -271,9 +288,10 @@ interface UserCardProps {
   pid: number;
   alias: string;
   interests: string[];
+  bio: string[];
 }
 
-const UserCard: React.FC<UserCardProps> = ({ alias, interests }) => {
+const UserCard: React.FC<UserCardProps> = ({ alias, interests, bio }) => {
   return (
     <Card sx={{ minWidth: 275, margin: 2 }}>
       <CardContent>
@@ -286,6 +304,9 @@ const UserCard: React.FC<UserCardProps> = ({ alias, interests }) => {
             <Chip key={index} label={interest} sx={{ margin: 0.5 }} />
           ))}
         </Box>
+        <Typography component="div">
+          {bio} {/* Render the alias */}
+        </Typography>
       </CardContent>
     </Card>
   );
@@ -308,7 +329,8 @@ const PotentialFriends: React.FC = () => {
           const friendsData = data.map((friend: any) => ({
             pid: friend[0],
             alias: friend[2],
-            interests: friend[3], // Assuming the fourth element is interests array
+            interests: friend[3],
+            bio: friend[4]
           }));
 
           setFriends(friendsData);
@@ -341,7 +363,7 @@ const PotentialFriends: React.FC = () => {
       <Grid container spacing={2}>
         {friends.map((friend) => (
           <Grid item xs={12} sm={6} md={4} key={friend.pid}>
-            <UserCard pid={friend.pid} alias={friend.alias} interests={friend.interests} />
+            <UserCard pid={friend.pid} alias={friend.alias} interests={friend.interests} bio={friend.bio} />
           </Grid>
         ))}
       </Grid>

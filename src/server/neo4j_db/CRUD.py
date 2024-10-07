@@ -30,7 +30,7 @@ def generate_alias():
     return alias
 
 
-def create_user(name, tags, O_embed, C_embed, E_embed, A_embed, N_embed, hashed_password, email):
+def create_user(name, tags, O_embed, C_embed, E_embed, A_embed, N_embed, hashed_password, email, bio):
     alias = generate_alias()
     name = name
     tags = tags
@@ -51,6 +51,7 @@ def create_user(name, tags, O_embed, C_embed, E_embed, A_embed, N_embed, hashed_
         N_embed: $N_embed,
         alias: $alias,
         email: $email,
+        bio: $bio
         password: $hashed_password,
         disconnects: []
     })
@@ -68,7 +69,8 @@ def create_user(name, tags, O_embed, C_embed, E_embed, A_embed, N_embed, hashed_
         "N_embed": N_embed,
         "tags": tags,
         "email": email,
-        "hashed_password": hashed_password
+        "hashed_password": hashed_password,
+        "bio": bio
     }
 
     driver = init_driver()
